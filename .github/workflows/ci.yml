@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar dependencias de test (sin las opcionales pesadas)
+        run: pip install pytest pillow markdown
+      - name: Comprobar sintaxis de todos los scripts Python
+        run: python -m py_compile scripts/*.py
+      - name: Ejecutar pytest
+        run: python -m pytest tests/ -v
+
+  sintaxis-powershell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parsear los scripts .ps1 (sin ejecutarlos)
+        shell: pwsh
+        run: |
+          $errores = 0
+          Get-ChildItem -Path scripts,. -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              Write-Host "ERRORES en $($_.Name)" -ForegroundColor Red
+              $parseErrors | ForEach-Object { Write-Host "  $($_.Message)" }
+              $errores++
+            } else {
+              Write-Host "OK: $($_.Name)" -ForegroundColor Green
+            }
+          }
+          if ($errores -gt 0) { exit 1 }

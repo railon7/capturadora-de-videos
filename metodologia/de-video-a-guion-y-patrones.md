@@ -24,6 +24,20 @@ La que deja `scripts/extraer-capturas.ps1`:
 El vídeo original no se mueve ni se edita. Todo lo que sale de él vive en
 esta carpeta; el manual terminado, si lo hay, es un entregable y va aparte.
 
+## 0ter · Descarta lo redundante (opcional, antes del catálogo)
+
+Con vídeos largos, revisar la Rejilla entera a mano cuesta tiempo.
+`scripts/detectar-redundantes.py` avisa de los fotogramas probablemente
+borrosos y de los casi duplicados consecutivos, sin borrar ni mover nada:
+
+```bash
+python scripts/detectar-redundantes.py "Capturas/Rejilla"
+```
+
+Deja `Analisis/Fotogramas a revisar.md`. Es un aviso, no una garantía —
+revisa antes de ignorar nada, y hazlo antes del catálogo del paso
+siguiente para no perder tiempo describiendo lo que se va a descartar.
+
 ## 0bis · Cataloga lo que se ha capturado (obligatorio)
 
 Antes de seguir, **toda imagen capturada tiene que quedar descrita en un
@@ -65,9 +79,27 @@ Hace falta el texto completo, no un resumen — el resumen se construye
 después, a partir del texto, y si se salta este paso se pierden los
 fragmentos literales que luego sirven para localizar el momento exacto.
 
+## 1bis · Borrador automático (opcional, ahorra el cruce manual)
+
+Si la transcripción viene de `transcribir.py` y ya existe
+`Analisis/Catalogo de capturas.md`, `scripts/generar-borrador-guion.py`
+hace el cruce mecánico: coge cada segmento con su marca de tiempo y sugiere
+la captura del catálogo más cercana en el tiempo.
+
+```bash
+python scripts/generar-borrador-guion.py "Analisis/transcripcion.tsv" --catalogo "Analisis/Catalogo de capturas.md"
+```
+
+**Esto no sustituye el paso 2.** El resultado es una fila por segmento de
+transcripción, no un bloque con sentido — hay que fundir filas, agruparlas
+en actos y corregir la pantalla sugerida cuando la más cercana en el tiempo
+no sea la correcta. Ahorra teclear tiempos y buscar capturas a mano; no
+ahorra el criterio de qué es un bloque.
+
 ## 2 · Trocea en bloques y actos — el mapa del vídeo
 
-Con la transcripción completa delante, una sola pasada de principio a fin:
+Con la transcripción completa delante (o el borrador del paso anterior ya
+revisado), una sola pasada de principio a fin:
 
 1. Corta en **bloques**: cada vez que cambia el tema, la pantalla o quien
    habla. Un bloque es tan corto como haga falta — a veces es una frase.
@@ -130,9 +162,22 @@ Preguntas que ayudan a encontrarlos:
 
 Cada patrón se escribe corto: una frase que lo nombra, en qué caso concreto
 apareció (como ejemplo, no como condición), y a qué tipo de situación se
-aplicaría en general. Este documento — los patrones — es el que va
-alimentando una base de conocimiento propia con el tiempo: la segunda vez
-que aparece el mismo patrón en otro vídeo, dejó de ser una anécdota.
+aplicaría en general. Usa `plantillas/plantilla-patrones.md` y guárdalo como
+`Analisis/Patrones reutilizables.md` — ese nombre y esa estructura de
+encabezados son los que espera `scripts/consolidar-patrones.py`.
+
+Cuando el proyecto ya tiene ese fichero, fúndelo en el conocimiento
+acumulado de este mismo repo (no del proyecto):
+
+```bash
+python scripts/consolidar-patrones.py "<proyecto>/Analisis/Patrones reutilizables.md" --proyecto "<nombre del cliente>"
+```
+
+Deja los patrones en `conocimiento/patrones-acumulados.md` y avisa si el
+nombre de un patrón nuevo se parece a uno que ya existe, para fundirlos a
+mano si son el mismo. Esto es lo que va alimentando una base de
+conocimiento propia con el tiempo: la segunda vez que aparece el mismo
+patrón en otro vídeo, deja de ser una anécdota de un solo cliente.
 
 ## 5 · De ahí al manual
 

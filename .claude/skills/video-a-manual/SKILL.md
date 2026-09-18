@@ -10,11 +10,11 @@ No asumas que el objetivo final es siempre un manual — a veces solo hacen
 falta las imágenes, o solo el guion de lo que se dijo.
 
 ```
-1. CAPTURAS   scripts/extraer-capturas.ps1
+1. CAPTURAS   scripts/extraer-capturas.ps1   (+ detectar-redundantes.py, opcional)
 1bis. CATÁLOGO   scripts/catalogar-capturas.py       (obligatorio, siempre)
-2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3
-3. PATRONES   metodologia/de-video-a-guion-y-patrones.md  §4
-4. MANUAL     metodologia/de-capturas-a-manual.md
+2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3   (+ generar-borrador-guion.py, opcional)
+3. PATRONES   metodologia/de-video-a-guion-y-patrones.md  §4     (+ consolidar-patrones.py)
+4. MANUAL     metodologia/de-capturas-a-manual.md   (+ anotar-captura.py, exportar-manual.py)
 ```
 
 ## Antes de nada: ¿qué hace falta de verdad?
@@ -60,6 +60,12 @@ grandes: avisa de que se va a quedar corriendo.
 Al terminar hay: `Capturas/Rejilla/` (fotogramas), `Hojas de contactos/`
 (mosaicos para navegar) y `Analisis/indice-capturas.txt`.
 
+Si el vídeo es largo, antes de catalogar pasa
+`python scripts/detectar-redundantes.py "Capturas/Rejilla"`: avisa de
+fotogramas borrosos o casi duplicados en `Analisis/Fotogramas a
+revisar.md`, para no perder tiempo describiendo lo que se va a descartar.
+Es un aviso, no borra nada — revísalo antes de ignorar algo.
+
 ## 1bis · Catalogar el contenido (obligatorio)
 
 ```bash
@@ -82,14 +88,25 @@ Sigue `metodologia/de-video-a-guion-y-patrones.md` exactamente en su orden:
    `python scripts/transcribir.py "<vídeo>" --idioma es` (requiere
    `pip install faster-whisper`), que da marca de tiempo por segmento sola.
    Si no es posible, a mano, pero entonces sin marcas de tiempo automáticas.
-2. Trocéala en bloques y actos, con cita literal de cada bloque — usa
+2. Si hay transcripción con tiempos y catálogo, genera el borrador con
+   `python scripts/generar-borrador-guion.py "Analisis/transcripcion.tsv"
+   --catalogo "Analisis/Catalogo de capturas.md"` — ahorra teclear tiempos
+   y buscar la pantalla más cercana a mano. **No lo confundas con el mapa
+   final**: cada fila es un segmento, no un bloque con sentido, y la
+   pantalla sugerida es solo la más cercana en el tiempo.
+3. Trocea en bloques y actos con criterio (fundiendo filas del borrador si
+   lo hay, o desde cero), con cita literal de cada bloque — usa
    `plantillas/plantilla-mapa-de-video.md`.
-3. Si la transcripción trae tiempos (Whisper), cópialos directamente. Si no,
+4. Si la transcripción trae tiempos (Whisper), cópialos directamente. Si no,
    localízalos recorriendo las hojas de contacto en el mismo orden que los
    bloques del guion — y revisa `Analisis/indice-escenas.txt` si existe.
-4. Con el mapa ya completo, haz una segunda lectura buscando qué es
+5. Con el mapa ya completo, haz una segunda lectura buscando qué es
    reutilizable más allá de este vídeo concreto (ver los criterios del §4 de
-   la metodología) y anótalo aparte.
+   la metodología). Escríbelo con `plantillas/plantilla-patrones.md` como
+   `Analisis/Patrones reutilizables.md`, y si el proyecto ya está avanzado,
+   funde ese fichero en el conocimiento acumulado de este repo con
+   `python scripts/consolidar-patrones.py "<ruta>/Analisis/Patrones
+   reutilizables.md" --proyecto "<nombre del cliente>"`.
 
 Guarda el mapa como `Analisis/Mapa del video — bloques y pantallas.md`.
 
@@ -105,13 +122,19 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
    el momento ya localizado.
 3. **Mira la captura antes de ponerle nombre** — nunca al revés. El orden es
    extraer → mirar → renombrar → enlazar.
-4. Recorta a la zona útil y numera las referencias con círculos (①②③) en
-   una copia; la original no se toca.
+4. Recorta a la zona útil (con cualquier editor de imágenes) y numera las
+   referencias con círculos en una copia — nunca sobre la original — con
+   `python scripts/anotar-captura.py "<seleccionada>" "<editada>" --marca
+   x1,y1 --marca x2,y2 ...`, un `--marca` por referencia en el orden en que
+   el texto del paso las va a citar (la primera es ①).
 5. Escribe el protocolo con `plantillas/plantilla-protocolo.md`, en
    imperativo, un paso por decisión, con su apartado "Qué NO hacer".
 6. Antes de entregar, pasa `scripts/auditar-privacidad.py --textos
    "Analisis" --ocr "Capturas/Editadas"` como segunda opinión automática —
    no sustituye la revisión a ojo del paso 4, la complementa.
+7. Empaqueta el entregable: `pip install markdown` y `python
+   scripts/exportar-manual.py "<protocolo>.md"` — deja un HTML autocontenido
+   con las imágenes incrustadas, listo para mandar o imprimir a PDF.
 
 ## Reglas que no se aflojan
 
@@ -137,4 +160,4 @@ es la siguiente acción concreta.
 
 ---
 
-*Skill v1.2 · repositorio Capturadora de Vídeos*
+*Skill v1.3 · repositorio Capturadora de Vídeos*

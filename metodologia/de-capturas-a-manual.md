@@ -45,11 +45,22 @@ original — si hace falta rehacer el recorte, se parte de nuevo de la
 seleccionada.
 
 - Recorta a la zona útil de la pantalla: una captura completa a resolución
-  alta no se lee dentro de un manual.
+  alta no se lee dentro de un manual. El recorte se hace con cualquier
+  editor de imágenes — no hay script para esto, es una decisión de
+  encuadre que no merece la pena automatizar.
 - Tapa cualquier dato identificable de terceros — nombre real, importe,
   contacto — aunque el ejemplo del vídeo sea ficticio.
-- Numera las referencias con círculos (①②③) en el mismo orden en que el
-  texto del paso las menciona.
+- Numera las referencias con círculos en el mismo orden en que el texto del
+  paso las menciona, con `scripts/anotar-captura.py`:
+
+  ```bash
+  python scripts/anotar-captura.py "Capturas/Seleccionadas/P02-04.png" "Capturas/Editadas/P02-04.png" --marca 120,80 --marca 300,200
+  ```
+
+  El primer `--marca` es el círculo ①, el segundo el ②, y así sucesivamente
+  — en el mismo orden en que el texto los va a citar. Nunca se apunta a la
+  propia `Seleccionadas` como salida: el script se niega salvo `--forzar`,
+  precisamente para no perder la original si el resultado no convence.
 
 ## 5 · Escribe el protocolo
 
@@ -95,6 +106,25 @@ un aviso heurístico, no una garantía: no detecta nombres propios ni
 importes sin formato reconocible, y puede dar algún falso positivo. No
 sustituye la revisión humana del paso 4 — la complementa para el caso en
 que a alguien se le pase un dato en una captura con mucho texto.
+
+## 8 · Empaqueta el entregable
+
+El protocolo vive como Markdown + imágenes sueltas mientras se escribe —
+así se edita mejor — pero eso no es lo que se le manda a alguien fuera del
+equipo, porque las rutas relativas a las imágenes se rompen en cuanto el
+fichero sale de su carpeta. `scripts/exportar-manual.py` empaqueta las dos
+cosas en un único HTML, con las imágenes incrustadas:
+
+```bash
+pip install markdown
+python scripts/exportar-manual.py "08-Formacion/P-02 · Circuito de compra.md"
+```
+
+El HTML resultante se abre en cualquier navegador tal cual, y desde ahí se
+imprime a PDF (Ctrl+P → Guardar como PDF) si hace falta ese formato. Con
+`--pdf` intenta generarlo directamente vía `pandoc`, si está instalado —
+si no lo encuentra, no es un error: el HTML ya es un entregable válido por
+sí solo.
 
 ## Cuando las capturas son de un entorno de ejemplo
 

@@ -40,3 +40,24 @@ línea de código de por medio (GPL o sin licencia).
 Nada del contenido de `metodologia/` ni `plantillas/` está copiado de estos
 proyectos: son la generalización del proceso ya desarrollado internamente
 para la demo de Distrito K (Novatecnic), ajustado con las ideas de arriba.
+
+## Técnicas genéricas usadas en las herramientas añadidas después (sin repo de origen)
+
+`scripts/detectar-redundantes.py` implementa dos técnicas de dominio
+público, de las que no se copió código de ningún proyecto concreto:
+
+- **aHash** (average hash): reducir la imagen a 8×8 en escala de grises y
+  comparar cada píxel con la media, para obtener una huella de 64 bits
+  comparable por distancia de Hamming. Es una técnica estándar de hashing
+  perceptivo, descrita en múltiples fuentes públicas desde hace más de una
+  década (p. ej. los artículos de Neal Krawetz sobre pHash/aHash).
+- **Nitidez por dispersión de bordes**: aproximación de la varianza del
+  laplaciano (la métrica de nitidez más común en visión por computador) sin
+  depender de OpenCV/numpy, usando el filtro `FIND_EDGES` de Pillow y la
+  desviación típica del resultado.
+
+`scripts/anotar-captura.py` (círculo + número dibujados, en vez de confiar
+en el glyph unicode ①-⑳) y `scripts/consolidar-patrones.py` (comparación de
+similitud con `difflib.SequenceMatcher`, de la librería estándar de Python)
+son implementaciones propias sin relación con ningún repositorio de la
+revisión de septiembre de 2026.

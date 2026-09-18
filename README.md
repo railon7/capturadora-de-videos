@@ -19,6 +19,8 @@ Vídeo
   │     Un fotograma cada N segundos + hojas de contacto para
   │     navegar el vídeo de un vistazo, sin reproducirlo. Opcional:
   │     fotogramas extra en cada cambio de escena (-DeteccionEscena).
+  │     scripts/detectar-redundantes.py avisa de los borrosos o casi
+  │     duplicados antes de perder tiempo revisándolos a mano.
   │
   ├─► 1bis. CATÁLOGO — scripts/catalogar-capturas.py (obligatorio)
   │     Qué se ve en cada imagen capturada, en un Markdown — para
@@ -26,16 +28,24 @@ Vídeo
   │
   ├─► 2. GUION — metodologia/de-video-a-guion-y-patrones.md
   │     scripts/transcribir.py (Whisper) da la transcripción con
-  │     marca de tiempo por segmento; de ahí, un mapa por bloques
-  │     con plantillas/plantilla-mapa-de-video.md
+  │     marca de tiempo por segmento; scripts/generar-borrador-guion.py
+  │     cruza esa transcripción con el catálogo y deja un primer
+  │     borrador del mapa por bloques (plantillas/plantilla-mapa-de-video.md)
+  │     con los tiempos y la pantalla sugerida ya puestos, a falta de
+  │     agrupar en bloques/actos con criterio.
   │
   ├─► 3. PATRONES — (mismo documento, segunda mitad)
-  │     Qué de lo visto es reutilizable más allá de este caso concreto.
+  │     Qué de lo visto es reutilizable más allá de este caso concreto,
+  │     con plantillas/plantilla-patrones.md. scripts/consolidar-patrones.py
+  │     los funde en conocimiento/patrones-acumulados.md: la segunda vez
+  │     que aparece un patrón deja de ser una anécdota de un solo cliente.
   │
   └─► 4. MANUAL — metodologia/de-capturas-a-manual.md
-        Capturas seleccionadas → recortadas y anotadas → protocolo,
-        usando plantillas/plantilla-protocolo.md, con
-        scripts/auditar-privacidad.py como aviso antes de entregar.
+        Capturas seleccionadas → recortadas y anotadas (con círculos
+        numerados: scripts/anotar-captura.py) → protocolo, usando
+        plantillas/plantilla-protocolo.md → entregable único con
+        scripts/exportar-manual.py, con scripts/auditar-privacidad.py
+        como aviso antes de entregar.
 ```
 
 Los pasos 2-4 son independientes entre sí: si solo hacen falta las imágenes
@@ -62,12 +72,28 @@ destino final no es un manual.
 # 1bis. Catálogo de contenido — obligatorio, no se salta
 python scripts/catalogar-capturas.py "Capturas/Rejilla"
 
+# 1ter. Aviso de fotogramas borrosos o casi duplicados (opcional, antes de mirarlos a mano)
+python scripts/detectar-redundantes.py "Capturas/Rejilla"
+
 # 2. Transcripción con marca de tiempo por segmento (recomendado antes del guion)
 pip install faster-whisper
 python scripts/transcribir.py "C:\ruta\al\video.mp4" --idioma es
 
+# 2b. Borrador del mapa del vídeo, cruzando transcripción y catálogo
+python scripts/generar-borrador-guion.py "Analisis/transcripcion.tsv" --catalogo "Analisis/Catalogo de capturas.md"
+
+# 4a. Anotar una captura ya recortada con círculos numerados
+python scripts/anotar-captura.py "Capturas/Seleccionadas/P02-04.png" "Capturas/Editadas/P02-04.png" --marca 120,80 --marca 300,200
+
 # 4b. Antes de entregar: aviso heurístico de datos identificables
 python scripts/auditar-privacidad.py --textos "Analisis" --ocr "Capturas/Editadas"
+
+# 4c. Empaquetar el manual terminado en un único HTML para el cliente
+pip install markdown
+python scripts/exportar-manual.py "08-Formacion/P-02 · Circuito de compra.md"
+
+# 3b. Cuando el proyecto ya tiene Analisis/Patrones reutilizables.md, fundirlo aquí
+python scripts/consolidar-patrones.py "<proyecto>/Analisis/Patrones reutilizables.md" --proyecto "<nombre del cliente>"
 ```
 
 Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
@@ -77,22 +103,30 @@ Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
 
 | Carpeta | Contenido |
 |---|---|
-| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales (PowerShell + ffmpeg), catálogo de contenido, transcripción (Python + Whisper) y auditoría de privacidad (Python) |
-| `plantillas/` | Plantilla del mapa de vídeo (guion) y plantilla del protocolo/manual |
+| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, detección de redundantes, catálogo de contenido, borrador del guion, anotación, transcripción, auditoría de privacidad, exportación del manual y consolidación de patrones |
+| `plantillas/` | Plantillas del mapa de vídeo, del protocolo/manual y de los patrones reutilizables |
 | `metodologia/` | Los dos procedimientos: vídeo → guion y patrones · capturas → manual |
+| `conocimiento/` | `patrones-acumulados.md` — el conocimiento reutilizable de todos los vídeos procesados con este repo, no de un proyecto en concreto |
 | `.claude/skills/video-a-manual/` | Skill de Claude Code que guía el proceso completo en cualquier proyecto |
+| `tests/` | Pruebas de las funciones puras de cada script (`pytest tests/`) |
+| `.github/workflows/ci.yml` | Comprueba sintaxis y pasa los tests en cada push |
 | `CREDITS.md` | Qué proyectos de terceros inspiraron cada mejora, y bajo qué licencia |
 
 ## Cómo usarlo en otro proyecto
 
-Este repo es la fuente. Para usarlo en un proyecto de cliente concreto:
+```powershell
+.\instalar.ps1 -Proyecto "C:\Proyectos\Cliente X"
+```
 
-1. Copia `.claude/skills/video-a-manual/` a `.claude/skills/` del proyecto,
-   y `scripts/` y `plantillas/` a donde le convenga a ese proyecto (por
-   ejemplo `_herramientas/`).
-2. En el proyecto, crea la carpeta de trabajo del vídeo con la estructura de
-   `metodologia/de-video-a-guion-y-patrones.md` §1.
-3. Ejecuta el script de extracción, luego sigue la metodología.
+Copia la skill a `.claude/skills/` del proyecto de destino, y `scripts/` +
+`plantillas/` a `_herramientas/capturadora-de-videos/` dentro de él (usa
+`-CarpetaHerramientas` para otra ruta). No copia `conocimiento/`: los
+patrones acumulados son de este repo, no de cada proyecto — se consolidan
+aquí con `consolidar-patrones.py`, no al revés.
+
+En el proyecto de destino, crea la carpeta de trabajo del vídeo con la
+estructura de `metodologia/de-video-a-guion-y-patrones.md` §0, ejecuta el
+script de extracción, y sigue la metodología.
 
 No hace falta clonar todo el repo dentro del proyecto de cliente: los datos
 de cliente y el vídeo original **no vienen a este repositorio** (ver
@@ -104,13 +138,18 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   `_herramientas/ffmpeg/` junto al vídeo, y si no lo encuentran intentan
   instalarlo con `winget` o descargar una copia portable. Puede instalarse a
   mano si algo de eso falla.
-- **PowerShell 5.1+** (Windows) para `extraer-capturas.ps1` y
-  `extraer-captura-puntual.ps1`.
-- **Python 3.9+** para `catalogar-capturas.py` (obligatorio en el pipeline),
-  `transcribir.py` (`pip install faster-whisper`) y `auditar-privacidad.py`.
-  El texto OCR de `catalogar-capturas.py` y el modo `--ocr` de
-  `auditar-privacidad.py` necesitan además `pip install pytesseract pillow`
-  y el binario `winget install --id UB-Mannheim.TesseractOCR` — sin ellos,
-  ambos scripts funcionan igual pero dejan esas columnas vacías para
-  completar a mano. El modo `--textos` de la auditoría de privacidad no
-  necesita nada aparte de Python.
+- **PowerShell 5.1+** (Windows) para `extraer-capturas.ps1`,
+  `extraer-captura-puntual.ps1` e `instalar.ps1`.
+- **Python 3.9+** con **Pillow** (`pip install pillow`) para
+  `catalogar-capturas.py` (obligatorio en el pipeline),
+  `detectar-redundantes.py`, `anotar-captura.py` y `auditar-privacidad.py`.
+  Además: `transcribir.py` necesita `pip install faster-whisper`;
+  `exportar-manual.py` necesita `pip install markdown`;
+  `generar-borrador-guion.py` y `consolidar-patrones.py` no necesitan nada
+  aparte de la librería estándar.
+- El texto OCR de `catalogar-capturas.py` y el modo `--ocr` de
+  `auditar-privacidad.py` necesitan además `pip install pytesseract` y el
+  binario `winget install --id UB-Mannheim.TesseractOCR` — sin ellos, ambos
+  scripts funcionan igual pero dejan esas columnas vacías para completar a
+  mano.
+- **pytest** (`pip install pytest`) solo para correr `tests/`.
