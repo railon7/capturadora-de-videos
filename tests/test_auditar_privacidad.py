@@ -26,16 +26,41 @@ def test_enmascarar():
     assert m.enmascarar("ab") == "**"
 
 
-def test_buscar_en_texto_detecta_los_cuatro_tipos():
+def test_cif_valido():
+    assert m.cif_valido("B", "7654321", "4") is True
+    assert m.cif_valido("B", "7654321", "0") is False
+
+
+def test_buscar_en_texto_detecta_los_cinco_tipos():
     texto = (
         "Contacto: juan.perez@example.com telf 611223344 "
-        "DNI 12345678Z tarjeta 4111111111111111"
+        "DNI 12345678Z tarjeta 4111111111111111 CIF B76543214"
     )
     hallazgos = m.buscar_en_texto(texto, "prueba")
-    tipos = {"email", "telefono_es", "DNI (checksum ok)", "tarjeta (Luhn ok)"}
+    tipos = {"email", "telefono_es", "DNI (checksum ok)", "tarjeta (Luhn ok)", "CIF (checksum ok)"}
     for tipo in tipos:
         assert any(tipo in h for h in hallazgos), f"no se detectó: {tipo}"
 
 
 def test_buscar_en_texto_sin_datos():
     assert m.buscar_en_texto("no hay nada identificable aquí", "prueba") == []
+
+
+def test_buscar_nombres_encuentra_coincidencia_literal():
+    hallazgos = m.buscar_nombres("El cliente es Novality, contacto Paco", "prueba", ["Novality"])
+    assert len(hallazgos) == 1
+    assert "nombre de la lista" in hallazgos[0]
+
+
+def test_buscar_nombres_sin_coincidencia():
+    assert m.buscar_nombres("texto sin ningun nombre de la lista", "prueba", ["Novality"]) == []
+
+
+def test_leer_lista_nombres_ignora_comentarios_y_vacios(tmp_path):
+    ruta = tmp_path / "nombres.txt"
+    ruta.write_text("Novality\n# comentario\n\nInnovatecnic\n", encoding="utf-8")
+    assert m.leer_lista_nombres(str(ruta)) == ["Novality", "Innovatecnic"]
+
+
+def test_leer_lista_nombres_sin_ruta():
+    assert m.leer_lista_nombres(None) == []

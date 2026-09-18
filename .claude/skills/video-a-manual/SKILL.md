@@ -14,7 +14,7 @@ falta las imágenes, o solo el guion de lo que se dijo.
 1bis. CATÁLOGO   scripts/catalogar-capturas.py       (obligatorio, siempre)
 2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3   (+ generar-borrador-guion.py, opcional)
 3. PATRONES   metodologia/de-video-a-guion-y-patrones.md  §4     (+ consolidar-patrones.py)
-4. MANUAL     metodologia/de-capturas-a-manual.md   (+ anotar-captura.py, exportar-manual.py)
+4. MANUAL     metodologia/de-capturas-a-manual.md   (+ redactar-captura.py OBLIGATORIO, anotar-captura.py, exportar-manual.py)
 ```
 
 ## Antes de nada: ¿qué hace falta de verdad?
@@ -122,17 +122,27 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
    el momento ya localizado.
 3. **Mira la captura antes de ponerle nombre** — nunca al revés. El orden es
    extraer → mirar → renombrar → enlazar.
-4. Recorta a la zona útil (con cualquier editor de imágenes) y numera las
-   referencias con círculos en una copia — nunca sobre la original — con
-   `python scripts/anotar-captura.py "<seleccionada>" "<editada>" --marca
+4. Recorta a la zona útil con cualquier editor de imágenes.
+5. **Tapa DNI/CIF/tarjeta/email/teléfono y nombres — obligatorio, por
+   protección de datos, antes de anotar.** Si no tienes ya una lista de
+   nombres propios y de empresa del proyecto, constrúyela leyendo la
+   transcripción/actas (los nombres NO se detectan solos, hace falta la
+   lista) y guárdala como `nombres-a-tapar.txt`. Luego:
+   `python scripts/redactar-captura.py "<seleccionada>" "<tapada>"
+   --nombres "nombres-a-tapar.txt"`.
+6. Numera las referencias con círculos sobre la imagen ya tapada — nunca
+   antes, para no numerar encima de algo que luego se cubre — con
+   `python scripts/anotar-captura.py "<tapada>" "<editada>" --marca
    x1,y1 --marca x2,y2 ...`, un `--marca` por referencia en el orden en que
-   el texto del paso las va a citar (la primera es ①).
-5. Escribe el protocolo con `plantillas/plantilla-protocolo.md`, en
+   el texto del paso las va a citar (la primera es ①). Ni este paso ni el
+   anterior tocan nunca la `Seleccionada` original.
+7. Escribe el protocolo con `plantillas/plantilla-protocolo.md`, en
    imperativo, un paso por decisión, con su apartado "Qué NO hacer".
-6. Antes de entregar, pasa `scripts/auditar-privacidad.py --textos
-   "Analisis" --ocr "Capturas/Editadas"` como segunda opinión automática —
-   no sustituye la revisión a ojo del paso 4, la complementa.
-7. Empaqueta el entregable: `pip install markdown` y `python
+8. Antes de entregar, pasa `scripts/auditar-privacidad.py --textos
+   "Analisis" --ocr "Capturas/Editadas" --nombres "nombres-a-tapar.txt"`
+   como segunda comprobación — no sustituye el paso 5, confirma que no se
+   dejó nada sin tapar.
+9. Empaqueta el entregable: `pip install markdown` y `python
    scripts/exportar-manual.py "<protocolo>.md"` — deja un HTML autocontenido
    con las imágenes incrustadas, listo para mandar o imprimir a PDF.
 
@@ -147,8 +157,12 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
 - **Cita literal, no resumen**, al trocear el guion — el resumen no se puede
   volver a localizar en la transcripción ni reconocer en una hoja de
   contacto.
-- **Tapa cualquier dato identificable de terceros** en las capturas del
-  manual, aunque el vídeo sea de un entorno de ejemplo.
+- **DNI, CIF, nombres propios y de empresa no pueden aparecer en una
+  captura del manual — es ley de protección de datos, no estilo.** Lo
+  verificable (DNI/CIF/tarjeta/email/teléfono) se tapa solo con
+  `redactar-captura.py`; los nombres necesitan la lista `--nombres`, que
+  alguien tiene que rellenar a mano — no des el paso por hecho solo porque
+  el script corrió sin la lista.
 - **Sin nombres de personas** en un manual que vaya a un destinatario externo,
   salvo que se confirme expresamente — usa roles ("administración",
   "compras"), no nombres propios.
@@ -160,4 +174,4 @@ es la siguiente acción concreta.
 
 ---
 
-*Skill v1.3 · repositorio Capturadora de Vídeos*
+*Skill v1.4 · repositorio Capturadora de Vídeos*

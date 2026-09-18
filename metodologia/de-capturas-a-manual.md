@@ -48,19 +48,38 @@ seleccionada.
   alta no se lee dentro de un manual. El recorte se hace con cualquier
   editor de imágenes — no hay script para esto, es una decisión de
   encuadre que no merece la pena automatizar.
-- Tapa cualquier dato identificable de terceros — nombre real, importe,
-  contacto — aunque el ejemplo del vídeo sea ficticio.
-- Numera las referencias con círculos en el mismo orden en que el texto del
-  paso las menciona, con `scripts/anotar-captura.py`:
+- **Tapa cualquier dato identificable de terceros** — DNI, CIF, nombre real,
+  importe, contacto — aunque el ejemplo del vídeo sea ficticio. Es
+  obligatorio por protección de datos, no una recomendación de estilo.
+  `scripts/redactar-captura.py` lo automatiza en parte:
 
   ```bash
-  python scripts/anotar-captura.py "Capturas/Seleccionadas/P02-04.png" "Capturas/Editadas/P02-04.png" --marca 120,80 --marca 300,200
+  python scripts/redactar-captura.py "Capturas/Seleccionadas/P02-04.png" "Capturas/Editadas/P02-04-tapada.png" --nombres "nombres-a-tapar.txt"
+  ```
+
+  DNI, NIE, CIF, tarjeta, email y teléfono se detectan solos (tienen dígito
+  de control verificable). **Los nombres propios y de empresa no** — van en
+  `nombres-a-tapar.txt` (uno por línea), que rellena quien conoce los
+  nombres reales del vídeo: mira la transcripción, el acta o el propio
+  vídeo y anota qué personas y empresas aparecen. **Esto no es una
+  garantía legal por sí solo**: el script avisa de lo que ha tapado, pero
+  revisa la imagen de todas formas antes de darla por buena — el OCR
+  puede fallar, sobre todo con letra pequeña o mala resolución.
+- Numera las referencias con círculos en el mismo orden en que el texto del
+  paso las menciona, con `scripts/anotar-captura.py`, **a partir de la
+  imagen ya tapada** (nunca antes: numerar antes de tapar arriesga a que el
+  círculo tape justo lo que había que numerar):
+
+  ```bash
+  python scripts/anotar-captura.py "Capturas/Editadas/P02-04-tapada.png" "Capturas/Editadas/P02-04.png" --marca 120,80 --marca 300,200
   ```
 
   El primer `--marca` es el círculo ①, el segundo el ②, y así sucesivamente
-  — en el mismo orden en que el texto los va a citar. Nunca se apunta a la
-  propia `Seleccionadas` como salida: el script se niega salvo `--forzar`,
-  precisamente para no perder la original si el resultado no convence.
+  — en el mismo orden en que el texto los va a citar. `P02-04.png` (sin
+  "-tapada") es la versión definitiva; el intermedio se puede borrar
+  después. Ningún script apunta nunca a `Seleccionadas` como salida: las
+  dos se niegan salvo `--forzar`, precisamente para no perder la original
+  si el resultado no convence.
 
 ## 5 · Escribe el protocolo
 
@@ -89,23 +108,26 @@ se ve en ella (por ejemplo, al tapar un dato).
 
 Antes de mandar el manual o las capturas seleccionadas a alguien fuera del
 equipo, `scripts/auditar-privacidad.py` da una segunda opinión automática
-además de la revisión a ojo del paso 4:
+además de la revisión a ojo del paso 4 — esto es para comprobar que el
+tapado del paso 4 no dejó nada, no un sustituto de `redactar-captura.py`:
 
 ```bash
-# Rápido, sin dependencias: busca email / teléfono / DNI-NIE / tarjeta en
-# la transcripción, el mapa del vídeo y demás texto de Analisis/
-python scripts/auditar-privacidad.py --textos "Analisis"
+# Rápido, sin dependencias: busca email / teléfono / DNI-NIE-CIF / tarjeta
+# en la transcripción, el mapa del vídeo y demás texto de Analisis/
+python scripts/auditar-privacidad.py --textos "Analisis" --nombres "nombres-a-tapar.txt"
 
 # Más lento (varios segundos por imagen): pasa cada captura por OCR y
 # busca lo mismo en el texto que aparece EN la pantalla capturada
-python scripts/auditar-privacidad.py --ocr "Capturas/Editadas"
+python scripts/auditar-privacidad.py --ocr "Capturas/Editadas" --nombres "nombres-a-tapar.txt"
 ```
 
-Deja un informe (`aviso-privacidad.md`) con los hallazgos enmascarados. Es
-un aviso heurístico, no una garantía: no detecta nombres propios ni
-importes sin formato reconocible, y puede dar algún falso positivo. No
-sustituye la revisión humana del paso 4 — la complementa para el caso en
-que a alguien se le pase un dato en una captura con mucho texto.
+Deja un informe (`aviso-privacidad.md`) con los hallazgos enmascarados. Usa
+el mismo `nombres-a-tapar.txt` que `redactar-captura.py`, así que si algo
+sale en este informe sobre `Capturas/Editadas` es que el tapado se saltó
+algo — revísalo antes de entregar. Es un aviso heurístico, no una garantía:
+sin `--nombres` no detecta nombres propios ni de empresa, y no detecta
+importes sin formato reconocible. No sustituye la revisión humana del
+paso 4 — la complementa.
 
 ## 8 · Empaqueta el entregable
 

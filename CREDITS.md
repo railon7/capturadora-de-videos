@@ -61,3 +61,10 @@ en el glyph unicode ①-⑳) y `scripts/consolidar-patrones.py` (comparación de
 similitud con `difflib.SequenceMatcher`, de la librería estándar de Python)
 son implementaciones propias sin relación con ningún repositorio de la
 revisión de septiembre de 2026.
+
+`scripts/redactar-captura.py` y las funciones de validación de
+`auditar-privacidad.py` implementan los algoritmos de dígito de control del
+DNI/NIE y del CIF español — son estándares administrativos públicos (BOE),
+no código de ningún proyecto de terceros. La localización de texto sobre la
+imagen usa `pytesseract.image_to_data` (Apache-2.0, ya era dependencia del
+repo) para obtener la caja de cada palabra detectada.
