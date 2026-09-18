@@ -67,6 +67,28 @@ contiene cada captura, a qué protocolo y paso alimenta, y si le falta
 recortar, anotar o revisar. Cuando el número de capturas pasa de una
 docena, sin este inventario se pierde la cuenta de qué falta.
 
+## 7 · Auditoría de privacidad automática (opcional, antes de entregar)
+
+Antes de mandar el manual o las capturas seleccionadas a alguien fuera del
+equipo, `scripts/auditar-privacidad.py` da una segunda opinión automática
+además de la revisión a ojo del paso 4:
+
+```bash
+# Rápido, sin dependencias: busca email / teléfono / DNI-NIE / tarjeta en
+# la transcripción, el mapa del vídeo y demás texto de Analisis/
+python scripts/auditar-privacidad.py --textos "Analisis"
+
+# Más lento (varios segundos por imagen): pasa cada captura por OCR y
+# busca lo mismo en el texto que aparece EN la pantalla capturada
+python scripts/auditar-privacidad.py --ocr "Capturas/Editadas"
+```
+
+Deja un informe (`aviso-privacidad.md`) con los hallazgos enmascarados. Es
+un aviso heurístico, no una garantía: no detecta nombres propios ni
+importes sin formato reconocible, y puede dar algún falso positivo. No
+sustituye la revisión humana del paso 4 — la complementa para el caso en
+que a alguien se le pase un dato en una captura con mucho texto.
+
 ## Cuando las capturas son de un entorno de ejemplo
 
 Si el vídeo muestra una demo o un entorno de prueba con datos inventados,

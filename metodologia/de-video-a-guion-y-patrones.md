@@ -13,10 +13,12 @@ La que deja `scripts/extraer-capturas.ps1`:
 <carpeta de trabajo>/
 ├─ Capturas/
 │   ├─ Rejilla/          Un fotograma cada N segundos, t_HHMMSS.jpg — no se toca
+│   │                    (y e_HHMMSS.jpg si se usó -DeteccionEscena)
 │   ├─ Seleccionadas/    Las pantallas que valen para el manual, en máxima calidad
 │   └─ Editadas/         Las mismas, recortadas y anotadas
 ├─ Hojas de contactos/   Mosaicos de 20 fotogramas para navegar el vídeo de un vistazo
-└─ Analisis/             video-info.txt, indice-capturas.txt, y el mapa del vídeo
+└─ Analisis/             video-info.txt, indice-capturas.txt, indice-escenas.txt,
+                         transcripcion.md/.tsv, y el mapa del vídeo
 ```
 
 El vídeo original no se mueve ni se edita. Todo lo que sale de él vive en
@@ -24,11 +26,25 @@ esta carpeta; el manual terminado, si lo hay, es un entregable y va aparte.
 
 ## 1 · Consigue la transcripción íntegra
 
-Este paso no lo hace un script: se hace escuchando el vídeo (o pasándolo por
-un transcriptor) de principio a fin. Hace falta el texto completo, no un
-resumen — el resumen se construye después, a partir del texto, y si se salta
-este paso se pierden los fragmentos literales que luego sirven para localizar
-el momento exacto en las hojas de contacto.
+La forma recomendada es `scripts/transcribir.py` (Whisper vía
+`faster-whisper`), que da la transcripción completa **con marca de tiempo
+por segmento** de forma automática:
+
+```
+pip install faster-whisper
+python scripts/transcribir.py "<vídeo>" --idioma es
+```
+
+Deja `Analisis/transcripcion.md` (legible, una línea por segmento con su
+`**HH:MM:SS**`) y `Analisis/transcripcion.tsv` (para procesar con otro
+script). Si no se puede usar Whisper, el paso se hace igual a mano —
+escuchando el vídeo de principio a fin — pero entonces sí hace falta el
+método de las hojas de contacto del §3 para poner la marca de tiempo,
+porque una transcripción manual normalmente no la trae.
+
+Hace falta el texto completo, no un resumen — el resumen se construye
+después, a partir del texto, y si se salta este paso se pierden los
+fragmentos literales que luego sirven para localizar el momento exacto.
 
 ## 2 · Trocea en bloques y actos — el mapa del vídeo
 
@@ -41,19 +57,25 @@ Con la transcripción completa delante, una sola pasada de principio a fin:
 3. Para cada bloque, anota una **cita literal**, no un resumen. Un resumen no
    se puede buscar después en la transcripción ni reconocer en una hoja de
    contacto; una frase textual sí.
-4. Deja la columna de marca de tiempo **vacía** en esta pasada. Se rellena
-   después, mirando las hojas de contacto o el índice — nunca por memoria ni
-   por proporción estimada del vídeo.
+4. Deja la columna de marca de tiempo **vacía** en esta pasada si la
+   transcripción no la trae. Se rellena después — nunca por memoria ni por
+   proporción estimada del vídeo.
 
 Usa `plantillas/plantilla-mapa-de-video.md` y guarda el resultado como
 `Analisis/Mapa del video — bloques y pantallas.md`.
 
 ## 3 · Localiza los tiempos
 
-Con el mapa de bloques ya escrito, recorre las hojas de contacto: la
-secuencia de bloques es el guion, así que el bloque 2 está por la hoja 01, el
-5 por la 02, y así sucesivamente. En cuanto se ubican tres o cuatro bloques,
-el resto se sitúa solo por proximidad.
+**Si la transcripción viene de `transcribir.py`**, cada bloque ya trae su
+segundo: busca la cita literal en `Analisis/transcripcion.md` y copia la
+marca de tiempo de esa línea. Las hojas de contacto quedan como
+verificación visual rápida (confirmar que en ese segundo se ve lo que se
+espera), no como método de búsqueda.
+
+**Si la transcripción es manual y no trae tiempos**, recorre las hojas de
+contacto: la secuencia de bloques es el guion, así que el bloque 2 está por
+la hoja 01, el 5 por la 02, y así sucesivamente. En cuanto se ubican tres o
+cuatro bloques, el resto se sitúa solo por proximidad.
 
 Fórmula para traducir una miniatura de una hoja a segundo exacto:
 
@@ -64,7 +86,10 @@ segundo = (índice − 1) × intervalo
 
 Con los tiempos localizados, ya se puede pedir la captura en máxima calidad
 con `scripts/extraer-captura-puntual.ps1` en lugar de conformarse con el
-fotograma de rejilla.
+fotograma de rejilla. Si el vídeo tiene transiciones más rápidas que el
+intervalo de muestreo, revisa también `Analisis/indice-escenas.txt` (si se
+extrajo con `-DeteccionEscena`): puede que ahí ya esté el fotograma exacto
+que las hojas de contacto no llegaron a capturar.
 
 ## 4 · Saca los patrones reutilizables
 

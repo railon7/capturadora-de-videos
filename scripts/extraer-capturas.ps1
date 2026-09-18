@@ -1,8 +1,9 @@
 <#
 .SYNOPSIS
     Convierte un vídeo en fotogramas navegables: rejilla a intervalo fijo,
-    hojas de contacto para localizar un momento sin reproducir el vídeo,
-    e índice tiempo -> fichero.
+    opcionalmente fotogramas extra en cada cambio de escena, hojas de
+    contacto para localizar un momento sin reproducir el vídeo, e índice
+    tiempo -> fichero.
 
 .PARAMETER Video
     Ruta al vídeo de origen. Obligatorio.
@@ -12,17 +13,54 @@
     una carpeta "Capturas-<nombre del vídeo>" junto al propio vídeo.
 
 .PARAMETER Intervalo
-    Segundos entre fotograma y fotograma. Por defecto 20.
+    Segundos entre fotograma y fotograma de la rejilla a intervalo fijo.
+    Por defecto 20.
 
 .PARAMETER AnchoMax
-    Ancho máximo de los fotogramas de rejilla, en píxeles. Por defecto 1600.
-    No afecta a la calidad de una captura puntual (ver extraer-captura-puntual.ps1).
+    Ancho máximo de los fotogramas, en píxeles. Por defecto 1600. No afecta
+    a la calidad de una captura puntual (ver extraer-captura-puntual.ps1).
+
+.PARAMETER SaltarInicioPct
+    Porcentaje de la duración total a saltar al principio (pantallas de
+    carga, logotipos). Por defecto 0. Un valor típico si el vídeo empieza
+    con una intro es 5-7.
+
+.PARAMETER SaltarFinalPct
+    Igual que SaltarInicioPct, pero al final del vídeo. Por defecto 0.
+
+.PARAMETER SoloKeyframes
+    Solo decodifica fotogramas clave (I-frames) en la extracción a
+    intervalo fijo. Evita fotogramas borrosos por compresión intermedia,
+    algo más frecuente en vídeo HEVC/H.265. A cambio, el fotograma que
+    sale para cada marca de tiempo puede ser el keyframe más cercano, no
+    el instante exacto — el nombre t_HHMMSS.jpg pasa a ser aproximado, no
+    exacto. Si la exactitud del instante importa, no actives esta opción
+    y usa extraer-captura-puntual.ps1 para la captura final.
+
+.PARAMETER DeteccionEscena
+    Además de la rejilla a intervalo fijo, saca un fotograma extra en cada
+    cambio de escena real (filtro `scene` de ffmpeg). Pensado para pillar
+    transiciones de pantalla que ocurren en menos tiempo que el intervalo
+    fijo y que de otro modo se pierden entre fotograma y fotograma. Salen
+    con el prefijo e_HHMMSS.jpg y en su propio índice
+    (Analisis/indice-escenas.txt): no entran en las hojas de contacto, que
+    siguen cubriendo solo el muestreo a intervalo fijo.
+
+.PARAMETER UmbralEscena
+    Sensibilidad de la detección de escena, de 0 a 1. Por defecto 0.4
+    (cambios de plano claros). Bájalo hacia 0.1-0.3 para pillar también
+    transiciones sutiles (un menú desplegable, un scroll brusco); súbelo
+    hacia 0.6-0.7 para quedarte solo con los cambios de pantalla completos.
+    Sin efecto si no se activa -DeteccionEscena.
 
 .EXAMPLE
     .\extraer-capturas.ps1 -Video "C:\videos\demo.mp4"
 
 .EXAMPLE
-    .\extraer-capturas.ps1 -Video "C:\videos\demo.mp4" -Trabajo "C:\proyecto\Capturas" -Intervalo 10
+    .\extraer-capturas.ps1 -Video "C:\videos\demo.mp4" -Trabajo "C:\proyecto\Capturas" -Intervalo 10 -DeteccionEscena
+
+.EXAMPLE
+    .\extraer-capturas.ps1 -Video "C:\videos\demo.mp4" -SaltarInicioPct 5 -SaltarFinalPct 3 -SoloKeyframes
 #>
 param(
     [Parameter(Mandatory = $true)]
@@ -32,7 +70,17 @@ param(
 
     [int]$Intervalo = 20,
 
-    [int]$AnchoMax = 1600
+    [int]$AnchoMax = 1600,
+
+    [double]$SaltarInicioPct = 0,
+
+    [double]$SaltarFinalPct = 0,
+
+    [switch]$SoloKeyframes,
+
+    [switch]$DeteccionEscena,
+
+    [double]$UmbralEscena = 0.4
 )
 
 $ErrorActionPreference = 'Stop'
@@ -124,6 +172,14 @@ $ts = [TimeSpan]::FromSeconds($segundos)
 $previstos = [math]::Floor($segundos / $Intervalo) + 1
 Bien ("Duracion: {0:hh\:mm\:ss}  -  fotogramas previstos: ~{1}" -f $ts, $previstos)
 
+$inicioSeg = [math]::Round($segundos * $SaltarInicioPct / 100, 2)
+$finSeg    = [math]::Round($segundos * $SaltarFinalPct / 100, 2)
+$duracionUtil = $segundos - $inicioSeg - $finSeg
+if ($duracionUtil -le 0) { throw "SaltarInicioPct + SaltarFinalPct deja 0 o menos segundos de video util." }
+if ($inicioSeg -gt 0 -or $finSeg -gt 0) {
+    Bien ("Saltando {0}s al inicio y {1}s al final -> {2}s utiles" -f $inicioSeg, $finSeg, $duracionUtil)
+}
+
 # ------------------------------------------------------------ 4 · extraccion
 Paso "Extrayendo un fotograma cada $Intervalo segundos"
 Aviso "Esto recorre el video entero. Puede tardar - dejalo corriendo."
@@ -132,11 +188,19 @@ Get-ChildItem -LiteralPath $dirRej -Filter *.jpg -ErrorAction SilentlyContinue |
 
 $t0 = Get-Date
 $filtro = "fps=1/$Intervalo,scale='min($AnchoMax,iw)':-2"
-$argsExtraer = @('-hide_banner','-loglevel','warning','-stats','-y','-i',$Video,'-vf',$filtro,'-vsync','vfr','-q:v','3',(Join-Path $dirRej '_tmp_%04d.jpg'))
+$argsExtraer = @('-hide_banner','-loglevel','warning','-stats')
+if ($SoloKeyframes) { $argsExtraer += @('-skip_frame','nokey') }
+if ($inicioSeg -gt 0) { $argsExtraer += @('-ss', $inicioSeg) }
+$argsExtraer += @('-y','-i',$Video)
+if ($inicioSeg -gt 0 -or $finSeg -gt 0) { $argsExtraer += @('-t', $duracionUtil) }
+$argsExtraer += @('-vf',$filtro,'-vsync','vfr','-q:v','3',(Join-Path $dirRej '_tmp_%04d.jpg'))
 & $FFmpeg @argsExtraer
 if ($LASTEXITCODE -ne 0) { throw "ffmpeg ha devuelto error al extraer los fotogramas." }
 $n = (Get-ChildItem -LiteralPath $dirRej -Filter "_tmp_*.jpg").Count
 Bien ("{0} capturas en {1:mm\:ss}" -f $n, ((Get-Date) - $t0))
+if ($SoloKeyframes) {
+    Aviso "SoloKeyframes activo: el instante de cada t_HHMMSS.jpg es aproximado (el keyframe mas cercano), no exacto."
+}
 
 # --------------------------------------------------- 5 · hojas de contactos
 Paso "Montando las hojas de contactos"
@@ -146,24 +210,74 @@ $argsHojas = @('-hide_banner','-loglevel','error','-y','-i',(Join-Path $dirRej '
 & $FFmpeg @argsHojas
 $h = (Get-ChildItem -LiteralPath $dirHojas -Filter "hoja_*.jpg" -ErrorAction SilentlyContinue).Count
 Bien "$h hojas de contactos (20 fotogramas cada una, 5x4, $([math]::Round($Intervalo * 20 / 60, 1)) min por hoja)"
+Aviso "Las hojas de contacto solo cubren el muestreo a intervalo fijo, no los fotogramas de cambio de escena."
 
 # ------------------------------------------------------------ 6 · renombrado
 Paso "Renombrando las capturas por su minuto"
 $i = 0
 $lineas = New-Object System.Collections.Generic.List[string]
 $lineas.Add("indice`thora`tfichero")
+$tiemposIntervalo = New-Object System.Collections.Generic.List[int]
 Get-ChildItem -LiteralPath $dirRej -Filter "_tmp_*.jpg" | Sort-Object Name | ForEach-Object {
-    $seg   = $i * $Intervalo
+    $seg   = [int]$inicioSeg + ($i * $Intervalo)
     $sp    = [TimeSpan]::FromSeconds($seg)
     $sello = '{0:00}{1:00}{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
     $hora  = '{0:00}:{1:00}:{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
     $nuevo = "t_$sello.jpg"
     Rename-Item -LiteralPath $_.FullName -NewName $nuevo -Force
     $lineas.Add(("{0}`t{1}`t{2}" -f ($i + 1), $hora, $nuevo))
+    $tiemposIntervalo.Add($seg)
     $i++
 }
 $lineas | Out-File -LiteralPath (Join-Path $Trabajo "Analisis\indice-capturas.txt") -Encoding UTF8
 Bien "$i capturas renombradas a t_HHMMSS.jpg"
+
+# --------------------------------------------- 7 · deteccion de escena (opcional)
+$numEscenas = 0
+if ($DeteccionEscena) {
+    Paso "Detectando cambios de escena (umbral $UmbralEscena)"
+    Get-ChildItem -LiteralPath $dirRej -Filter "_esc_*.jpg" -ErrorAction SilentlyContinue | Remove-Item -Force
+    $filtroEsc = "select='gt(scene,$UmbralEscena)',scale='min($AnchoMax,iw)':-2,showinfo"
+    $argsEsc = @('-hide_banner','-loglevel','info','-y','-i',$Video,'-vf',$filtroEsc,'-vsync','vfr','-q:v','3',(Join-Path $dirRej '_esc_%04d.jpg'))
+    $salidaEsc = & $FFmpeg @argsEsc 2>&1
+
+    $tiemposEsc = New-Object System.Collections.Generic.List[double]
+    foreach ($linea in $salidaEsc) {
+        if ($linea -match 'pts_time:(?<t>[\d\.]+)') { $tiemposEsc.Add([double]$Matches['t']) }
+    }
+
+    $archivosEsc = Get-ChildItem -LiteralPath $dirRej -Filter "_esc_*.jpg" | Sort-Object Name
+    if ($archivosEsc.Count -ne $tiemposEsc.Count) {
+        Aviso "No he podido emparejar todos los tiempos de escena con sus fotogramas (ffmpeg cambio su formato de aviso). Reviso solo los que coincidan."
+    }
+
+    $lineasEsc = New-Object System.Collections.Generic.List[string]
+    $lineasEsc.Add("hora`tfichero")
+    for ($k = 0; $k -lt [math]::Min($archivosEsc.Count, $tiemposEsc.Count); $k++) {
+        $seg = [int][math]::Round($tiemposEsc[$k])
+        # Si cae a menos de 2s de un fotograma ya sacado por intervalo fijo, es redundante
+        $esRedundante = $false
+        foreach ($tExistente in $tiemposIntervalo) {
+            if ([math]::Abs($seg - $tExistente) -le 2) { $esRedundante = $true; break }
+        }
+        if ($esRedundante) {
+            Remove-Item -LiteralPath $archivosEsc[$k].FullName -Force
+            continue
+        }
+        $sp    = [TimeSpan]::FromSeconds($seg)
+        $sello = '{0:00}{1:00}{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
+        $hora  = '{0:00}:{1:00}:{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
+        $nuevo = "e_$sello.jpg"
+        Rename-Item -LiteralPath $archivosEsc[$k].FullName -NewName $nuevo -Force
+        $lineasEsc.Add(("{0}`t{1}" -f $hora, $nuevo))
+        $numEscenas++
+    }
+    # Sobrantes sin tiempo emparejado: fuera, para no dejar basura _esc_ en la carpeta
+    Get-ChildItem -LiteralPath $dirRej -Filter "_esc_*.jpg" -ErrorAction SilentlyContinue | Remove-Item -Force
+
+    $lineasEsc | Out-File -LiteralPath (Join-Path $Trabajo "Analisis\indice-escenas.txt") -Encoding UTF8
+    Bien "$numEscenas fotogramas de cambio de escena (e_HHMMSS.jpg), tras descartar los redundantes con la rejilla"
+}
 
 Write-Host ""
 Write-Host "  TERMINADO" -ForegroundColor Green
@@ -171,6 +285,9 @@ Write-Host "  ---------" -ForegroundColor DarkGray
 Write-Host "  Capturas ............ $dirRej"
 Write-Host "  Hojas de contactos .. $dirHojas"
 Write-Host "  Indice .............. $(Join-Path $Trabajo 'Analisis\indice-capturas.txt')"
+if ($DeteccionEscena) {
+Write-Host "  Indice de escenas ... $(Join-Path $Trabajo 'Analisis\indice-escenas.txt') ($numEscenas)"
+}
 Write-Host ""
 Write-Host "  Para el mapa del video y las capturas del manual, sigue" -ForegroundColor White
 Write-Host "  metodologia/de-video-a-guion-y-patrones.md y de-capturas-a-manual.md" -ForegroundColor White

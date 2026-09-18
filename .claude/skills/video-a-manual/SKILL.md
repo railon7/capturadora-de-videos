@@ -40,7 +40,14 @@ Comprueba que hay un vídeo accesible y localizable, y una carpeta de trabajo
 Parámetros opcionales: `-Intervalo` (segundos entre fotograma, por defecto
 20) y `-AnchoMax` (por defecto 1600 px). Un intervalo más corto tiene sentido
 si el vídeo cambia de pantalla muy rápido; uno más largo si es una reunión
-larga con pocas pantallas.
+larga con pocas pantallas. Además:
+
+- `-DeteccionEscena` saca fotogramas extra en cada cambio de pantalla real
+  (filtro de escena de ffmpeg), útil si hay transiciones más rápidas que el
+  intervalo — van aparte, en `e_HHMMSS.jpg` y `Analisis/indice-escenas.txt`.
+- `-SaltarInicioPct` / `-SaltarFinalPct` saltan automáticamente intro/outro.
+- `-SoloKeyframes` evita fotogramas borrosos (útil en vídeo HEVC), a cambio
+  de que la marca de tiempo del nombre sea aproximada, no exacta.
 
 El script no toca el vídeo original y puede tardar bastante en vídeos
 grandes: avisa de que se va a quedar corriendo.
@@ -52,12 +59,15 @@ Al terminar hay: `Capturas/Rejilla/` (fotogramas), `Hojas de contactos/`
 
 Sigue `metodologia/de-video-a-guion-y-patrones.md` exactamente en su orden:
 
-1. Consigue la transcripción íntegra del vídeo (no un resumen).
+1. Consigue la transcripción íntegra del vídeo — preferiblemente con
+   `python scripts/transcribir.py "<vídeo>" --idioma es` (requiere
+   `pip install faster-whisper`), que da marca de tiempo por segmento sola.
+   Si no es posible, a mano, pero entonces sin marcas de tiempo automáticas.
 2. Trocéala en bloques y actos, con cita literal de cada bloque — usa
-   `plantillas/plantilla-mapa-de-video.md` — y **sin rellenar todavía los
-   tiempos**.
-3. Localiza los tiempos recorriendo las hojas de contacto en el mismo orden
-   que los bloques del guion.
+   `plantillas/plantilla-mapa-de-video.md`.
+3. Si la transcripción trae tiempos (Whisper), cópialos directamente. Si no,
+   localízalos recorriendo las hojas de contacto en el mismo orden que los
+   bloques del guion — y revisa `Analisis/indice-escenas.txt` si existe.
 4. Con el mapa ya completo, haz una segunda lectura buscando qué es
    reutilizable más allá de este vídeo concreto (ver los criterios del §4 de
    la metodología) y anótalo aparte.
@@ -80,6 +90,9 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
    una copia; la original no se toca.
 5. Escribe el protocolo con `plantillas/plantilla-protocolo.md`, en
    imperativo, un paso por decisión, con su apartado "Qué NO hacer".
+6. Antes de entregar, pasa `scripts/auditar-privacidad.py --textos
+   "Analisis" --ocr "Capturas/Editadas"` como segunda opinión automática —
+   no sustituye la revisión a ojo del paso 4, la complementa.
 
 ## Reglas que no se aflojan
 
@@ -101,4 +114,4 @@ es la siguiente acción concreta.
 
 ---
 
-*Skill v1.0 · repositorio Capturadora de Vídeos*
+*Skill v1.1 · repositorio Capturadora de Vídeos*
