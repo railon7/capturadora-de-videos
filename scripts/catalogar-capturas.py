@@ -18,10 +18,32 @@ Uso:
 """
 import argparse
 import re
+import shutil
 import sys
 from pathlib import Path
 
 RE_HORA = re.compile(r"[te]_(\d{2})(\d{2})(\d{2})")
+
+# Rutas donde el instalador oficial / winget dejan tesseract.exe en Windows
+# cuando su carpeta no está en el PATH — mismo enfoque que ya usa
+# extraer-capturas.ps1 para localizar ffmpeg sin depender del PATH.
+RUTAS_TESSERACT_WINDOWS = [
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+]
+
+
+def localizar_tesseract(cmd_manual: str = None) -> str:
+    """Ruta al ejecutable de tesseract, o None si no se encuentra."""
+    if cmd_manual:
+        return cmd_manual if Path(cmd_manual).exists() else None
+    en_path = shutil.which("tesseract")
+    if en_path:
+        return en_path
+    for candidato in RUTAS_TESSERACT_WINDOWS:
+        if Path(candidato).exists():
+            return candidato
+    return None
 
 
 def hora_desde_nombre(nombre: str) -> str:
@@ -50,6 +72,7 @@ def main() -> int:
     parser.add_argument("carpeta", help="Carpeta con las imágenes a catalogar (p. ej. Capturas/Rejilla)")
     parser.add_argument("--salida", default=None, help="Fichero .md de salida (por defecto: Analisis/Catalogo de capturas.md junto a la carpeta de trabajo)")
     parser.add_argument("--sin-ocr", action="store_true", help="No intentes leer texto de las imágenes, deja la columna vacía para rellenar a mano")
+    parser.add_argument("--tesseract-cmd", default=None, help="Ruta al ejecutable de tesseract, si no está en el PATH ni en su ubicación habitual")
     args = parser.parse_args()
 
     carpeta = Path(args.carpeta)
@@ -60,12 +83,22 @@ def main() -> int:
     ocr_disponible = not args.__dict__["sin_ocr"]
     if ocr_disponible:
         try:
-            import pytesseract  # noqa: F401
+            import pytesseract
             from PIL import Image  # noqa: F401
         except ImportError:
             print("Aviso: falta pytesseract/pillow, el catálogo sale sin texto OCR.", file=sys.stderr)
             print("Instala con: pip install pytesseract pillow", file=sys.stderr)
             ocr_disponible = False
+
+    if ocr_disponible:
+        ruta_tesseract = localizar_tesseract(args.tesseract_cmd)
+        if not ruta_tesseract:
+            print("Aviso: pytesseract está instalado pero no encuentro el binario de tesseract.", file=sys.stderr)
+            print("Instálalo con: winget install --id UB-Mannheim.TesseractOCR", file=sys.stderr)
+            print("o indica la ruta con --tesseract-cmd \"C:\\ruta\\a\\tesseract.exe\"", file=sys.stderr)
+            ocr_disponible = False
+        else:
+            pytesseract.pytesseract.tesseract_cmd = ruta_tesseract
 
     imagenes = sorted(
         [p for p in carpeta.iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png")],

@@ -26,8 +26,31 @@ Uso:
 """
 import argparse
 import re
+import shutil
 import sys
 from pathlib import Path
+
+# Rutas donde el instalador oficial / winget dejan tesseract.exe en Windows
+# cuando su carpeta no está en el PATH — mismo enfoque que ya usa
+# extraer-capturas.ps1 para localizar ffmpeg sin depender del PATH.
+RUTAS_TESSERACT_WINDOWS = [
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+]
+
+
+def localizar_tesseract(cmd_manual: str = None) -> str:
+    """Ruta al ejecutable de tesseract, o None si no se encuentra."""
+    if cmd_manual:
+        return cmd_manual if Path(cmd_manual).exists() else None
+    en_path = shutil.which("tesseract")
+    if en_path:
+        return en_path
+    for candidato in RUTAS_TESSERACT_WINDOWS:
+        if Path(candidato).exists():
+            return candidato
+    return None
+
 
 PATRONES_SIMPLES = {
     "email": re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"),
@@ -106,7 +129,7 @@ def escanear_textos(carpeta: Path) -> list[str]:
     return hallazgos
 
 
-def escanear_ocr(carpeta: Path) -> list[str]:
+def escanear_ocr(carpeta: Path, tesseract_cmd: str = None) -> list[str]:
     try:
         import pytesseract
         from PIL import Image
@@ -114,6 +137,14 @@ def escanear_ocr(carpeta: Path) -> list[str]:
         print("Falta pytesseract y/o pillow. Instala con: pip install pytesseract pillow", file=sys.stderr)
         print("Y el binario de Tesseract-OCR: winget install --id UB-Mannheim.TesseractOCR", file=sys.stderr)
         return []
+
+    ruta_tesseract = localizar_tesseract(tesseract_cmd)
+    if not ruta_tesseract:
+        print("pytesseract está instalado pero no encuentro el binario de tesseract.", file=sys.stderr)
+        print("Instálalo con: winget install --id UB-Mannheim.TesseractOCR", file=sys.stderr)
+        print("o indica la ruta con --tesseract-cmd \"C:\\ruta\\a\\tesseract.exe\"", file=sys.stderr)
+        return []
+    pytesseract.pytesseract.tesseract_cmd = ruta_tesseract
 
     hallazgos = []
     imagenes = list(carpeta.rglob("*.jpg")) + list(carpeta.rglob("*.jpeg")) + list(carpeta.rglob("*.png"))
@@ -135,6 +166,7 @@ def main() -> int:
     parser.add_argument("--textos", help="Carpeta con .md/.txt/.tsv a escanear por patrón, sin OCR")
     parser.add_argument("--ocr", help="Carpeta con imágenes a pasar por OCR antes de escanear")
     parser.add_argument("--salida", default=None, help="Fichero de informe (por defecto: aviso-privacidad.md en la primera carpeta dada)")
+    parser.add_argument("--tesseract-cmd", default=None, help="Ruta al ejecutable de tesseract, si no está en el PATH ni en su ubicación habitual")
     args = parser.parse_args()
 
     if not args.textos and not args.ocr:
@@ -144,7 +176,7 @@ def main() -> int:
     if args.textos:
         hallazgos.extend(escanear_textos(Path(args.textos)))
     if args.ocr:
-        hallazgos.extend(escanear_ocr(Path(args.ocr)))
+        hallazgos.extend(escanear_ocr(Path(args.ocr), args.tesseract_cmd))
 
     salida = Path(args.salida) if args.salida else Path(args.textos or args.ocr) / "aviso-privacidad.md"
     salida.parent.mkdir(parents=True, exist_ok=True)
