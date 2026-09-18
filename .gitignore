@@ -1,0 +1,20 @@
+# Este repo es la herramienta, no el material de ningún cliente.
+# Nada de vídeos, capturas ni carpetas de trabajo generadas.
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+Capturas/
+Capturas-*/
+Hojas de contactos/
+Analisis/
+_log-extraccion.txt
+
+# ffmpeg portable descargado por el script
+_herramientas/
+
+# Basura habitual de Windows / editores
+Thumbs.db
+desktop.ini
+.DS_Store
