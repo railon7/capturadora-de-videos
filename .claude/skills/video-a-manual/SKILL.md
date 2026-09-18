@@ -11,6 +11,7 @@ falta las imágenes, o solo el guion de lo que se dijo.
 
 ```
 1. CAPTURAS   scripts/extraer-capturas.ps1
+1bis. CATÁLOGO   scripts/catalogar-capturas.py       (obligatorio, siempre)
 2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3
 3. PATRONES   metodologia/de-video-a-guion-y-patrones.md  §4
 4. MANUAL     metodologia/de-capturas-a-manual.md
@@ -21,12 +22,16 @@ falta las imágenes, o solo el guion de lo que se dijo.
 Pregunta si no está claro:
 
 - **Solo imágenes** de momentos concretos (para otra cosa, no un manual) →
-  paso 1, y si hacen falta pantallas puntuales en calidad, usa
+  pasos 1 y 1bis, y si hacen falta pantallas puntuales en calidad, usa
   `extraer-captura-puntual.ps1` con el minuto que indique quien pide.
-- **Un manual de cliente / protocolo paso a paso** → los cuatro pasos.
-- **Solo el guion de lo que se dijo**, sin manual → pasos 1-3.
-- **Patrones o lecciones reutilizables**, sin necesidad de manual → pasos 1-3,
-  centrado en el §4 de `de-video-a-guion-y-patrones.md`.
+- **Un manual de cliente / protocolo paso a paso** → los cinco pasos.
+- **Solo el guion de lo que se dijo**, sin manual → pasos 1, 1bis, 2-3.
+- **Patrones o lecciones reutilizables**, sin necesidad de manual → pasos 1,
+  1bis, 2-3, centrado en el §4 de `de-video-a-guion-y-patrones.md`.
+
+**El paso 1bis no se salta nunca, sea cual sea el destino final.** Sin un
+catálogo del contenido, ni la persona ni ningún LLM que retome el trabajo
+después sabe qué hay en las capturas sin abrirlas una por una.
 
 ## 1 · Extraer capturas
 
@@ -54,6 +59,20 @@ grandes: avisa de que se va a quedar corriendo.
 
 Al terminar hay: `Capturas/Rejilla/` (fotogramas), `Hojas de contactos/`
 (mosaicos para navegar) y `Analisis/indice-capturas.txt`.
+
+## 1bis · Catalogar el contenido (obligatorio)
+
+```bash
+python scripts/catalogar-capturas.py "Capturas/Rejilla"
+```
+
+Deja `Analisis/Catalogo de capturas.md` con el texto OCR de cada imagen (si
+hay OCR disponible) y una columna "Qué se ve" en blanco. **Complétala** —
+mirando las imágenes tú misma/o si puedes, o pidiendo confirmación de qué
+se ve — antes de dar el paso por terminado. No la dejes en blanco ni la
+sustituyas por el texto OCR sin más: el OCR lee texto de la pantalla, no
+dice qué pantalla es. Repite sobre `Capturas/Seleccionadas` y
+`Capturas/Editadas` más adelante, cuando existan.
 
 ## 2-3 · Guion y patrones
 
@@ -96,6 +115,10 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
 
 ## Reglas que no se aflojan
 
+- **Toda imagen capturada se cataloga en un .md.** No basta con el nombre
+  por marca de tiempo — sin el catálogo, nadie entiende el contenido sin
+  abrir cada imagen. Esto aplica siempre, no solo cuando el destino es un
+  manual.
 - **El vídeo original no se mueve ni se edita.** Todo lo que sale de él vive
   en la carpeta de trabajo; el vídeo se queda donde estaba.
 - **Cita literal, no resumen**, al trocear el guion — el resumen no se puede
@@ -114,4 +137,4 @@ es la siguiente acción concreta.
 
 ---
 
-*Skill v1.1 · repositorio Capturadora de Vídeos*
+*Skill v1.2 · repositorio Capturadora de Vídeos*

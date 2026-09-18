@@ -24,6 +24,25 @@ La que deja `scripts/extraer-capturas.ps1`:
 El vídeo original no se mueve ni se edita. Todo lo que sale de él vive en
 esta carpeta; el manual terminado, si lo hay, es un entregable y va aparte.
 
+## 0bis · Cataloga lo que se ha capturado (obligatorio)
+
+Antes de seguir, **toda imagen capturada tiene que quedar descrita en un
+Markdown** — no basta con el nombre por marca de tiempo para saber qué hay
+dentro sin abrir la imagen. Esto vale aunque el destino final no sea un
+manual: si las imágenes van a usarse "para otra cosa", quien las reciba
+necesita el catálogo igual para saber qué hay sin recorrerlas una a una.
+
+```bash
+python scripts/catalogar-capturas.py "Capturas/Rejilla"
+```
+
+Deja `Analisis/Catalogo de capturas.md` con una fila por imagen: el nombre,
+la hora, el texto que se lee en pantalla (OCR automático, si está
+disponible) y una columna "Qué se ve" en blanco. **El OCR lee texto, no
+interpreta la pantalla** — completa esa columna a mano o pidiéndole a un
+LLM que mire las imágenes, no la dejes vacía. Repite para
+`Capturas/Seleccionadas` y `Capturas/Editadas` cuando existan.
+
 ## 1 · Consigue la transcripción íntegra
 
 La forma recomendada es `scripts/transcribir.py` (Whisper vía

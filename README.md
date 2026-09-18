@@ -20,6 +20,10 @@ Vídeo
   │     navegar el vídeo de un vistazo, sin reproducirlo. Opcional:
   │     fotogramas extra en cada cambio de escena (-DeteccionEscena).
   │
+  ├─► 1bis. CATÁLOGO — scripts/catalogar-capturas.py (obligatorio)
+  │     Qué se ve en cada imagen capturada, en un Markdown — para
+  │     entender el contenido sin abrir las imágenes una por una.
+  │
   ├─► 2. GUION — metodologia/de-video-a-guion-y-patrones.md
   │     scripts/transcribir.py (Whisper) da la transcripción con
   │     marca de tiempo por segmento; de ahí, un mapa por bloques
@@ -34,9 +38,12 @@ Vídeo
         scripts/auditar-privacidad.py como aviso antes de entregar.
 ```
 
-Los pasos son independientes: si solo hace falta la imagen (por ejemplo,
-para alimentar otra cosa que no es un manual), se para en el paso 1. Si
-hace falta el guion de lo que se dijo sin escribir manual, se para en el 2-3.
+Los pasos 2-4 son independientes entre sí: si solo hacen falta las imágenes
+(por ejemplo, para alimentar otra cosa que no es un manual), se para después
+del catálogo. Si hace falta el guion de lo que se dijo sin escribir manual,
+se para en el 2-3. **El catálogo (1bis) no se salta nunca**: sin él, nadie
+sabe qué hay en las capturas sin abrirlas una por una — ni siquiera si el
+destino final no es un manual.
 
 ## Quickstart
 
@@ -52,7 +59,10 @@ hace falta el guion de lo que se dijo sin escribir manual, se para en el 2-3.
 ```
 
 ```bash
-# 1b. Transcripción con marca de tiempo por segmento (recomendado antes del guion)
+# 1bis. Catálogo de contenido — obligatorio, no se salta
+python scripts/catalogar-capturas.py "Capturas/Rejilla"
+
+# 2. Transcripción con marca de tiempo por segmento (recomendado antes del guion)
 pip install faster-whisper
 python scripts/transcribir.py "C:\ruta\al\video.mp4" --idioma es
 
@@ -67,7 +77,7 @@ Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
 
 | Carpeta | Contenido |
 |---|---|
-| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales (PowerShell + ffmpeg), transcripción (Python + Whisper) y auditoría de privacidad (Python) |
+| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales (PowerShell + ffmpeg), catálogo de contenido, transcripción (Python + Whisper) y auditoría de privacidad (Python) |
 | `plantillas/` | Plantilla del mapa de vídeo (guion) y plantilla del protocolo/manual |
 | `metodologia/` | Los dos procedimientos: vídeo → guion y patrones · capturas → manual |
 | `.claude/skills/video-a-manual/` | Skill de Claude Code que guía el proceso completo en cualquier proyecto |
@@ -96,8 +106,11 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   mano si algo de eso falla.
 - **PowerShell 5.1+** (Windows) para `extraer-capturas.ps1` y
   `extraer-captura-puntual.ps1`.
-- **Python 3.9+** solo si se usan `transcribir.py` (`pip install
-  faster-whisper`) o `auditar-privacidad.py` en modo `--ocr` (`pip install
-  pytesseract pillow`, y el binario `winget install --id
-  UB-Mannheim.TesseractOCR`). El modo `--textos` de la auditoría de
-  privacidad no necesita nada aparte de Python.
+- **Python 3.9+** para `catalogar-capturas.py` (obligatorio en el pipeline),
+  `transcribir.py` (`pip install faster-whisper`) y `auditar-privacidad.py`.
+  El texto OCR de `catalogar-capturas.py` y el modo `--ocr` de
+  `auditar-privacidad.py` necesitan además `pip install pytesseract pillow`
+  y el binario `winget install --id UB-Mannheim.TesseractOCR` — sin ellos,
+  ambos scripts funcionan igual pero dejan esas columnas vacías para
+  completar a mano. El modo `--textos` de la auditoría de privacidad no
+  necesita nada aparte de Python.

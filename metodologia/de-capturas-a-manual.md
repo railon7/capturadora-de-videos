@@ -62,10 +62,17 @@ reproduce los hábitos del sistema viejo en el nuevo.
 
 ## 6 · Mantén el inventario
 
-Un fichero vivo (`Analisis/Estado de las capturas.md` o similar) con qué
-contiene cada captura, a qué protocolo y paso alimenta, y si le falta
-recortar, anotar o revisar. Cuando el número de capturas pasa de una
-docena, sin este inventario se pierde la cuenta de qué falta.
+Un fichero vivo (`Analisis/Estado de las capturas.md` o similar) con a qué
+protocolo y paso alimenta cada captura seleccionada, y si le falta recortar,
+anotar o revisar. Cuando el número de capturas pasa de una docena, sin este
+inventario se pierde la cuenta de qué falta.
+
+Esto es distinto del `Analisis/Catalogo de capturas.md` del §0bis de
+`de-video-a-guion-y-patrones.md`: aquél describe **qué se ve** en cada
+imagen capturada del vídeo (para entender el contenido sin abrirlas); este
+inventario dice **para qué sirve** cada una de las ya seleccionadas para el
+manual. Actualiza el catálogo si recortas/editas una imagen y cambia lo que
+se ve en ella (por ejemplo, al tapar un dato).
 
 ## 7 · Auditoría de privacidad automática (opcional, antes de entregar)
 
