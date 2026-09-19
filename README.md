@@ -141,10 +141,19 @@ Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
 ```
 
 Copia la skill a `.claude/skills/` del proyecto de destino, y `scripts/` +
-`plantillas/` a `_herramientas/capturadora-de-videos/` dentro de él (usa
-`-CarpetaHerramientas` para otra ruta). No copia `conocimiento/`: los
-patrones acumulados son de este repo, no de cada proyecto — se consolidan
-aquí con `consolidar-patrones.py`, no al revés.
+`plantillas/` + `metodologia/` a `_herramientas/capturadora-de-videos/`
+dentro de él (usa `-CarpetaHerramientas` para otra ruta). **Reescribe las
+rutas dentro de la skill copiada** para que apunten a esa carpeta, así los
+comandos de `SKILL.md` funcionan tal cual en el proyecto de destino, sin
+tener que ajustar nada a mano. No copia `conocimiento/`: los patrones
+acumulados son de este repo, no de cada proyecto — se consolidan aquí con
+`consolidar-patrones.py`, no al revés.
+
+Una vez copiada, Claude Code detecta la skill sola la próxima vez que se
+abra en esa carpeta de proyecto — no hace falta ningún paso de registro
+aparte. Se puede invocar explícitamente con `/video-a-manual`, o Claude la
+usa sola cuando lo que se pide encaja con su descripción (un vídeo del que
+sacar capturas, un manual, etc.).
 
 En el proyecto de destino, crea la carpeta de trabajo del vídeo con la
 estructura de `metodologia/de-video-a-guion-y-patrones.md` §0, ejecuta el

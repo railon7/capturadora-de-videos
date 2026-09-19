@@ -23,11 +23,11 @@ Pregunta si no está claro:
 
 - **Solo imágenes** de momentos concretos (para otra cosa, no un manual) →
   pasos 1 y 1bis, y si hacen falta pantallas puntuales en calidad, usa
-  `extraer-captura-puntual.ps1` con el minuto que indique quien pide.
+  `scripts/extraer-captura-puntual.ps1` con el minuto que indique quien pide.
 - **Un manual de cliente / protocolo paso a paso** → los cinco pasos.
 - **Solo el guion de lo que se dijo**, sin manual → pasos 1, 1bis, 2-3.
 - **Patrones o lecciones reutilizables**, sin necesidad de manual → pasos 1,
-  1bis, 2-3, centrado en el §4 de `de-video-a-guion-y-patrones.md`.
+  1bis, 2-3, centrado en el §4 de `metodologia/de-video-a-guion-y-patrones.md`.
 
 **El paso 1bis no se salta nunca, sea cual sea el destino final.** Sin un
 catálogo del contenido, ni la persona ni ningún LLM que retome el trabajo
@@ -39,7 +39,7 @@ Comprueba que hay un vídeo accesible y localizable, y una carpeta de trabajo
 (si no la dan, propón `Capturas-<nombre del video>` junto al vídeo). Ejecuta:
 
 ```powershell
-.\scripts\extraer-capturas.ps1 -Video "<ruta al vídeo>" -Trabajo "<carpeta de trabajo>"
+scripts/extraer-capturas.ps1 -Video "<ruta al vídeo>" -Trabajo "<carpeta de trabajo>"
 ```
 
 Parámetros opcionales: `-Intervalo` (segundos entre fotograma, por defecto
@@ -118,7 +118,7 @@ la columna se deja vacía — nunca una estimación por proporción del vídeo.
 Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
 
 1. Agrupa los bloques del mapa por a qué manual alimentan.
-2. Saca cada captura en máxima calidad con `extraer-captura-puntual.ps1` en
+2. Saca cada captura en máxima calidad con `scripts/extraer-captura-puntual.ps1` en
    el momento ya localizado.
 3. **Mira la captura antes de ponerle nombre** — nunca al revés. El orden es
    extraer → mirar → renombrar → enlazar.
