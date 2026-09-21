@@ -1,0 +1,155 @@
+# Guía rápida: Capturadora de Vídeos
+
+## En 5 minutos
+
+Tienes un vídeo. Quieres fotogramas, un guion, un manual, o los tres. Aquí está todo automatizado.
+
+### 0. Copia la herramienta a tu proyecto
+
+Desde la carpeta de este repo:
+
+```powershell
+.\instalar.ps1 -Proyecto "C:\Proyectos\Tu-Cliente"
+```
+
+Listo. La skill está en `.claude/skills/video-a-manual/` del proyecto, y los scripts en `_herramientas/capturadora-de-videos/`. Sin pasos adicionales.
+
+### 1. Extrae fotogramas del vídeo
+
+```powershell
+scripts/extraer-capturas.ps1 -Video "C:\Videos\demo.mp4" -Trabajo "C:\Tu-Proyecto\Trabajo"
+```
+
+Deja fotogramas cada 20 segundos en `Capturas/Rejilla/`, hojas de contacto en `Hojas de contactos/` y un índice en `Analisis/`.
+
+Parámetros opcionales:
+- `-Intervalo 10` → cada 10 segundos en lugar de 20
+- `-DeteccionEscena` → fotogramas extra en cambios de pantalla
+- `-SaltarInicioPct 5` → salta el primer 5% (intro)
+
+### 2. Cataloga lo que capturaste (obligatorio)
+
+```bash
+python scripts/catalogar-capturas.py "Capturas/Rejilla"
+```
+
+Sale `Analisis/Catalogo de capturas.md`. **Completa la columna "Qué se ve"** — no basta con el OCR, describe lo que ves en cada imagen. Sin esto, nadie sabe qué hay dentro sin abrir 200 imágenes.
+
+### 3. (Opcional) Aviso de fotogramas malos
+
+Si son muchas imágenes:
+
+```bash
+python scripts/detectar-redundantes.py "Capturas/Rejilla"
+```
+
+Te dice cuáles están borrosas o casi repetidas, para no catalogar lo que vas a tirar. No borra nada.
+
+### 4. Transcribe (si quieres guion o manual)
+
+```bash
+pip install faster-whisper
+python scripts/transcribir.py "C:\Videos\demo.mp4" --idioma es
+```
+
+Sale `Analisis/transcripcion.md` (legible) y `Analisis/transcripcion.tsv` (para procesar).
+
+### 5. Trocea en bloques (guion)
+
+Abre `metodologia/de-video-a-guion-y-patrones.md`, §1-3, y sigue los pasos. Usa la plantilla `plantillas/plantilla-mapa-de-video.md`.
+
+O si quieres un primer borrador automático:
+
+```bash
+python scripts/generar-borrador-guion.py "Analisis/transcripcion.tsv" --catalogo "Analisis/Catalogo de capturas.md"
+```
+
+Te deja un fichero con la transcripción cruzada con el catálogo — todavía tienes que agrupar en bloques con criterio, pero ahorra teclear tiempos y buscar pantallas a mano.
+
+### 6. (Si quieres manual) Tapa datos sensibles
+
+**DNI, CIF, nombres propios no pueden salir.**
+
+```bash
+python scripts/redactar-captura.py "Capturas/Seleccionadas/P01-01.png" "Capturas/Editadas/P01-01.png" --nombres "nombres-a-tapar.txt"
+```
+
+Dónde `nombres-a-tapar.txt` es:
+```
+Novality
+Juan Pérez
+Acme Corp
+```
+
+Tapa todo automáticamente (DNI, email, teléfono se detectan solos; nombres van por lista). Nunca toca el original.
+
+### 7. Anota con círculos numerados
+
+```bash
+python scripts/anotar-captura.py "Capturas/Editadas/P01-01.png" "Capturas/Final/P01-01.png" --marca 120,80 --marca 300,200
+```
+
+Dibuja ① ② ③ en los lugares que le indiques. Úsalo después de tapar datos.
+
+### 8. Escribe el protocolo
+
+Usa `plantillas/plantilla-protocolo.md`. Es un template paso a paso.
+
+### 9. Antes de entregar, audita privacidad
+
+```bash
+python scripts/auditar-privacidad.py --textos "Analisis" --ocr "Capturas/Editadas" --nombres "nombres-a-tapar.txt"
+```
+
+Segunda opinión automática. No es garantía legal, **revisa a ojo antes de mandar nada a cliente**.
+
+### 10. (Opcional) Empaqueta en un HTML
+
+```bash
+pip install markdown
+python scripts/exportar-manual.py "08-Manual/P-01-Circuito.md"
+```
+
+Sale `P-01-Circuito.html` con todas las imágenes incrustadas. Se abre en cualquier navegador, se imprime a PDF desde ahí.
+
+---
+
+## Flujos típicos
+
+### Solo quiero fotogramas navegables
+→ Pasos 1, 2. Listo.
+
+### Quiero el guion de lo que se dijo
+→ Pasos 1, 2, 4, 5.
+
+### Quiero un manual para cliente
+→ Pasos 1–10. Dedica tiempo al paso 2 (catálogo) y paso 6 (redacción de datos).
+
+---
+
+## Requisitos
+
+- **ffmpeg** — el script lo busca en el PATH, en `_herramientas/ffmpeg/`, o lo descarga
+- **PowerShell 5.1+** para extraer fotogramas
+- **Python 3.9+** con **pillow** para todo lo demás
+- **Tesseract-OCR** (opcional) si quieres OCR en catálogo y redacción: `winget install --id UB-Mannheim.TesseractOCR`
+- **faster-whisper** (opcional) para transcripción: `pip install faster-whisper`
+- **markdown** (opcional) para exportar HTML: `pip install markdown`
+
+---
+
+## Prompt para Claude Code
+
+Abre Claude Code en tu carpeta de proyecto. Copia esto en el chat:
+
+```
+Tengo un vídeo de una demo / reunión grabada / formación. 
+Quiero [fotogramas / un guion / un manual con fotos anotadas].
+
+El vídeo está en: [ruta al vídeo]
+La carpeta de trabajo está en: [ruta de carpeta de trabajo]
+
+¿Qué pasos doy primero?
+```
+
+Claude te guiará con la skill `/video-a-manual` que ya está instalada en tu proyecto.
