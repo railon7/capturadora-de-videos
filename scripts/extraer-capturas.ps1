@@ -221,8 +221,10 @@ $tiemposIntervalo = New-Object System.Collections.Generic.List[int]
 Get-ChildItem -LiteralPath $dirRej -Filter "_tmp_*.jpg" | Sort-Object Name | ForEach-Object {
     $seg   = [int]$inicioSeg + ($i * $Intervalo)
     $sp    = [TimeSpan]::FromSeconds($seg)
-    $sello = '{0:00}{1:00}{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
-    $hora  = '{0:00}:{1:00}:{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
+    # Floor, no [int]: [int] redondea (1:54 = 1,9 h saldría como hora 2)
+    $horas = [int][math]::Floor($sp.TotalHours)
+    $sello = '{0:00}{1:00}{2:00}' -f $horas, $sp.Minutes, $sp.Seconds
+    $hora  = '{0:00}:{1:00}:{2:00}' -f $horas, $sp.Minutes, $sp.Seconds
     $nuevo = "t_$sello.jpg"
     Rename-Item -LiteralPath $_.FullName -NewName $nuevo -Force
     $lineas.Add(("{0}`t{1}`t{2}" -f ($i + 1), $hora, $nuevo))
@@ -265,10 +267,18 @@ if ($DeteccionEscena) {
             continue
         }
         $sp    = [TimeSpan]::FromSeconds($seg)
-        $sello = '{0:00}{1:00}{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
-        $hora  = '{0:00}:{1:00}:{2:00}' -f [int]$sp.TotalHours, $sp.Minutes, $sp.Seconds
+        $horas = [int][math]::Floor($sp.TotalHours)
+        $sello = '{0:00}{1:00}{2:00}' -f $horas, $sp.Minutes, $sp.Seconds
+        $hora  = '{0:00}:{1:00}:{2:00}' -f $horas, $sp.Minutes, $sp.Seconds
+        # Dos cambios de escena en el mismo segundo darían el mismo nombre, y
+        # Rename-Item no sobrescribe aunque lleve -Force: sufijo _2, _3...
         $nuevo = "e_$sello.jpg"
-        Rename-Item -LiteralPath $archivosEsc[$k].FullName -NewName $nuevo -Force
+        $n = 2
+        while (Test-Path -LiteralPath (Join-Path $dirRej $nuevo)) {
+            $nuevo = "e_${sello}_$n.jpg"
+            $n++
+        }
+        Rename-Item -LiteralPath $archivosEsc[$k].FullName -NewName $nuevo
         $lineasEsc.Add(("{0}`t{1}" -f $hora, $nuevo))
         $numEscenas++
     }
