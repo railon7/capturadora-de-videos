@@ -181,7 +181,10 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   `catalogar-capturas.py` (obligatorio en el pipeline),
   `recortar-pantalla.py`, `detectar-redundantes.py`, `anotar-captura.py`, `redactar-captura.py` y
   `auditar-privacidad.py`. Además: `transcribir.py` necesita
-  `pip install faster-whisper`; `exportar-manual.py` necesita
+  `pip install faster-whisper` y ffmpeg (decodifica el audio con él, no con
+  PyAV); para usar la GPU (`--dispositivo cuda`, mucho más rápido), también
+  `pip install nvidia-cublas-cu12 nvidia-cudnn-cu12`, que el script enlaza
+  solo en Windows. `exportar-manual.py` necesita
   `pip install markdown`; `generar-borrador-guion.py` y
   `consolidar-patrones.py` no necesitan nada aparte de la librería estándar.
 - El texto OCR de `catalogar-capturas.py`, `redactar-captura.py` (obligatorio,
@@ -190,5 +193,11 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   `winget install --id UB-Mannheim.TesseractOCR`. Sin ellos, los dos
   primeros scripts fallan con un mensaje claro (redactar sin poder leer la
   imagen no tiene sentido); `auditar-privacidad.py --textos` sigue
-  funcionando igual porque no depende de OCR.
+  funcionando igual porque no depende de OCR. Instala también el idioma
+  español de Tesseract (`spa.traineddata` en su carpeta `tessdata`): sin él
+  lee en inglés y falla más con tildes y eñes, y los scripts lo avisan.
+  `redactar-captura.py` y `auditar-privacidad.py` amplían la imagen antes del
+  OCR (la letra de una pantalla es pequeña) y buscan los nombres sin tildes y
+  tolerando errores de lectura; aun así, un nombre que el OCR lee muy mal
+  ("Precio Genes" por "Pedro Gómez") se escapa: revisa siempre a ojo.
 - **pytest** (`pip install pytest`) solo para correr `tests/`.
