@@ -164,7 +164,10 @@ Bien "ffmpeg: $FFmpeg"
 # ------------------------------------------------------------ 3 · info del video
 Paso "Leyendo la informacion del video"
 $argsProbe = @('-v','error','-select_streams','v:0','-show_entries','format=duration:stream=width,height,r_frame_rate,codec_name','-of','default=noprint_wrappers=1','--',$Video)
-$info = & $FFprobe @argsProbe 2>&1
+$prefAnterior = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'   # un aviso de ffprobe por stderr no debe cortar el script (PowerShell 5.1)
+$info = & $FFprobe @argsProbe 2>&1 | ForEach-Object { "$_" }
+$ErrorActionPreference = $prefAnterior
 $info | Out-File -LiteralPath (Join-Path $Trabajo "Analisis\video-info.txt") -Encoding UTF8
 $dur = ($info | Select-String '^duration=' | Select-Object -First 1) -replace 'duration=',''
 $segundos = [int][double]$dur
@@ -195,7 +198,7 @@ if ($SoloKeyframes) { $argsExtraer += @('-skip_frame','nokey') }
 if ($inicioSeg -gt 0) { $argsExtraer += @('-ss', $inicioSeg) }
 $argsExtraer += @('-y','-i',$Video)
 if ($inicioSeg -gt 0 -or $finSeg -gt 0) { $argsExtraer += @('-t', $duracionUtil) }
-$argsExtraer += @('-vf',$filtro,'-vsync','vfr','-q:v','3',(Join-Path $dirRej '_tmp_%04d.jpg'))
+$argsExtraer += @('-vf',$filtro,'-fps_mode','vfr','-q:v','3',(Join-Path $dirRej '_tmp_%04d.jpg'))
 & $FFmpeg @argsExtraer
 if ($LASTEXITCODE -ne 0) { throw "ffmpeg ha devuelto error al extraer los fotogramas." }
 $n = (Get-ChildItem -LiteralPath $dirRej -Filter "_tmp_*.jpg").Count
@@ -208,7 +211,7 @@ if ($SoloKeyframes) {
 Paso "Montando las hojas de contactos"
 $dirHojas = Join-Path $Trabajo "Hojas de contactos"
 Get-ChildItem -LiteralPath $dirHojas -Filter *.jpg -ErrorAction SilentlyContinue | Remove-Item -Force
-$argsHojas = @('-hide_banner','-loglevel','error','-y','-i',(Join-Path $dirRej '_tmp_%04d.jpg'),'-vf','scale=520:-2,tile=5x4:margin=8:padding=8:color=0x1b1b1b','-vsync','vfr','-q:v','3',(Join-Path $dirHojas 'hoja_%02d.jpg'))
+$argsHojas = @('-hide_banner','-loglevel','error','-y','-i',(Join-Path $dirRej '_tmp_%04d.jpg'),'-vf','scale=520:-2,tile=5x4:margin=8:padding=8:color=0x1b1b1b','-fps_mode','vfr','-q:v','3',(Join-Path $dirHojas 'hoja_%02d.jpg'))
 & $FFmpeg @argsHojas
 $h = (Get-ChildItem -LiteralPath $dirHojas -Filter "hoja_*.jpg" -ErrorAction SilentlyContinue).Count
 Bien "$h hojas de contactos (20 fotogramas cada una, 5x4, $([math]::Round($Intervalo * 20 / 60, 1)) min por hoja)"
@@ -242,8 +245,14 @@ if ($DeteccionEscena) {
     Paso "Detectando cambios de escena (umbral $UmbralEscena)"
     Get-ChildItem -LiteralPath $dirRej -Filter "_esc_*.jpg" -ErrorAction SilentlyContinue | Remove-Item -Force
     $filtroEsc = "select='gt(scene,$UmbralEscena)',scale='min($AnchoMax,iw)':-2,showinfo"
-    $argsEsc = @('-hide_banner','-loglevel','info','-y','-i',$Video,'-vf',$filtroEsc,'-vsync','vfr','-q:v','3',(Join-Path $dirRej '_esc_%04d.jpg'))
-    $salidaEsc = & $FFmpeg @argsEsc 2>&1
+    $argsEsc = @('-hide_banner','-loglevel','info','-y','-i',$Video,'-vf',$filtroEsc,'-fps_mode','vfr','-q:v','3',(Join-Path $dirRej '_esc_%04d.jpg'))
+    # Aquí se lee el stderr de ffmpeg (los pts_time de showinfo). En Windows PowerShell 5.1,
+    # con ErrorActionPreference=Stop, cualquier línea de stderr redirigida corta el script
+    # aunque solo sea un aviso: se relaja solo para esta llamada.
+    $prefAnterior = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $salidaEsc = & $FFmpeg @argsEsc 2>&1 | ForEach-Object { "$_" }
+    $ErrorActionPreference = $prefAnterior
 
     $tiemposEsc = New-Object System.Collections.Generic.List[double]
     foreach ($linea in $salidaEsc) {
