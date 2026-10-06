@@ -10,7 +10,7 @@ No asumas que el objetivo final es siempre un manual — a veces solo hacen
 falta las imágenes, o solo el guion de lo que se dijo.
 
 ```
-1. CAPTURAS   scripts/extraer-capturas.ps1   (+ detectar-redundantes.py, opcional)
+1. CAPTURAS   scripts/extraer-capturas.ps1   (+ recortar-pantalla.py si es una videollamada, + detectar-redundantes.py, opcional)
 1bis. CATÁLOGO   scripts/catalogar-capturas.py       (obligatorio, siempre)
 2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3   (+ generar-borrador-guion.py, opcional)
 3. PATRONES   metodologia/de-video-a-guion-y-patrones.md  §4     (+ consolidar-patrones.py)
@@ -59,6 +59,22 @@ grandes: avisa de que se va a quedar corriendo.
 
 Al terminar hay: `Capturas/Rejilla/` (fotogramas), `Hojas de contactos/`
 (mosaicos para navegar) y `Analisis/indice-capturas.txt`.
+
+**Si es la grabación de una videollamada o un webinar** (Teams, Zoom, Meet:
+la pantalla compartida es un rectángulo en el centro, rodeado de fondo
+oscuro, barras de botones y la miniatura de la cámara), deja solo la
+pantalla compartida antes de seguir:
+
+```bash
+python scripts/recortar-pantalla.py "Capturas/Rejilla"
+```
+
+Deja `Capturas/Rejilla-pantalla/` sin tocar los originales. Mira los tamaños
+de recorte que lista al terminar: debería haber uno por disposición de la
+llamada (con cámara, sin cámara...). Si sale uno raro (típico: la sala de
+espera, con una portada oscura), abre esas imágenes y fija su caja con
+`--forzar-caja "t_0000*.jpg=x0,y0,x1,y1"`. A partir de aquí, cataloga y
+trabaja sobre `Rejilla-pantalla`. Igual con los `e_HHMMSS.jpg` de escena.
 
 Si el vídeo es largo, antes de catalogar pasa
 `python scripts/detectar-redundantes.py "Capturas/Rejilla"`: avisa de
@@ -122,7 +138,10 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
    el momento ya localizado.
 3. **Mira la captura antes de ponerle nombre** — nunca al revés. El orden es
    extraer → mirar → renombrar → enlazar.
-4. Recorta a la zona útil con cualquier editor de imágenes.
+4. Recorta a la zona útil. Si es una videollamada,
+   `python scripts/recortar-pantalla.py "<seleccionada>" "<recortada>"` quita
+   el marco de la aplicación y la miniatura de cámara; para recortes más
+   finos, cualquier editor de imágenes.
 5. **Tapa DNI/CIF/tarjeta/email/teléfono y nombres — obligatorio, por
    protección de datos, antes de anotar.** Si no tienes ya una lista de
    nombres propios y de empresa del proyecto, constrúyela leyendo la
@@ -174,4 +193,4 @@ es la siguiente acción concreta.
 
 ---
 
-*Skill v1.4 · repositorio Capturadora de Vídeos*
+*Skill v1.5 · repositorio Capturadora de Vídeos*

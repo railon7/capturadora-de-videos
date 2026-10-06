@@ -19,6 +19,9 @@ Vídeo
   │     Un fotograma cada N segundos + hojas de contacto para
   │     navegar el vídeo de un vistazo, sin reproducirlo. Opcional:
   │     fotogramas extra en cada cambio de escena (-DeteccionEscena).
+  │     Si es una videollamada o un webinar, scripts/recortar-pantalla.py
+  │     deja solo la pantalla compartida, sin el fondo de la aplicación
+  │     ni la miniatura de la cámara.
   │     scripts/detectar-redundantes.py avisa de los borrosos o casi
   │     duplicados antes de perder tiempo revisándolos a mano.
   │
@@ -88,6 +91,9 @@ no un sustituto de la revisión humana antes de entregar.
 ```
 
 ```bash
+# 1. (Videollamada o webinar) Dejar solo la pantalla compartida -> Capturas/Rejilla-pantalla
+python scripts/recortar-pantalla.py "Capturas/Rejilla"
+
 # 1bis. Catálogo de contenido — obligatorio, no se salta
 python scripts/catalogar-capturas.py "Capturas/Rejilla"
 
@@ -125,7 +131,7 @@ Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
 
 | Carpeta | Contenido |
 |---|---|
-| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, detección de redundantes, catálogo de contenido, borrador del guion, anotación, redacción de datos personales, transcripción, auditoría de privacidad, exportación del manual y consolidación de patrones |
+| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, recorte de la pantalla compartida en videollamadas, detección de redundantes, catálogo de contenido, borrador del guion, anotación, redacción de datos personales, transcripción, auditoría de privacidad, exportación del manual y consolidación de patrones |
 | `plantillas/` | Plantillas del mapa de vídeo, del protocolo/manual y de los patrones reutilizables |
 | `metodologia/` | Los dos procedimientos: vídeo → guion y patrones · capturas → manual |
 | `conocimiento/` | `patrones-acumulados.md` — el conocimiento reutilizable de todos los vídeos procesados con este repo, no de un proyecto en concreto |
@@ -173,7 +179,7 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   `extraer-captura-puntual.ps1` e `instalar.ps1`.
 - **Python 3.9+** con **Pillow** (`pip install pillow`) para
   `catalogar-capturas.py` (obligatorio en el pipeline),
-  `detectar-redundantes.py`, `anotar-captura.py`, `redactar-captura.py` y
+  `recortar-pantalla.py`, `detectar-redundantes.py`, `anotar-captura.py`, `redactar-captura.py` y
   `auditar-privacidad.py`. Además: `transcribir.py` necesita
   `pip install faster-whisper`; `exportar-manual.py` necesita
   `pip install markdown`; `generar-borrador-guion.py` y

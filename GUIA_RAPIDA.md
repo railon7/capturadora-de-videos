@@ -27,6 +27,14 @@ Parámetros opcionales:
 - `-DeteccionEscena` → fotogramas extra en cambios de pantalla
 - `-SaltarInicioPct 5` → salta el primer 5% (intro)
 
+**¿Es una videollamada o un webinar (Teams, Zoom, Meet)?** Quita el fondo de la aplicación y la miniatura de la cámara para quedarte solo con la pantalla compartida:
+
+```bash
+python scripts/recortar-pantalla.py "Capturas/Rejilla"
+```
+
+Sale `Capturas/Rejilla-pantalla/`; los originales no se tocan. Al terminar lista los tamaños de recorte: si alguno es raro (la sala de espera suele serlo), fija su caja con `--forzar-caja "t_0000*.jpg=x0,y0,x1,y1"`. Desde aquí, trabaja con `Rejilla-pantalla`.
+
 ### 2. Cataloga lo que capturaste (obligatorio)
 
 ```bash
