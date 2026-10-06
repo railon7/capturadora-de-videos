@@ -84,6 +84,37 @@ def pcm_a_muestras(pcm: bytes):
     return np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
 
 
+def tramos_por_silencio(muestras, frecuencia: int, tramo_seg: float, margen_seg: float = 15.0, ventana_seg: float = 0.5) -> list:
+    """Parte el audio en tramos de ~tramo_seg segundos, como (inicio, fin) en muestras.
+
+    Cada corte se mueve, dentro de ±margen_seg, al trozo de ventana_seg con menos
+    energía, para no partir una palabra por la mitad. Un audio corto es un solo tramo.
+    """
+    import numpy as np
+
+    total = len(muestras)
+    tramo = int(tramo_seg * frecuencia)
+    if total <= tramo * 1.2:  # un tramo de un 20 % más no compensa partirlo
+        return [(0, total)]
+    ventana = max(1, int(ventana_seg * frecuencia))
+    margen = int(margen_seg * frecuencia)
+    cortes = [0]
+    nominal = tramo
+    while nominal < total - tramo * 0.2:
+        a, b = max(cortes[-1] + ventana, nominal - margen), min(total - ventana, nominal + margen)
+        zona = np.asarray(muestras[a:b], dtype=np.float32)
+        n = len(zona) // ventana
+        if n:
+            energia = (zona[: n * ventana].reshape(n, ventana) ** 2).mean(axis=1)
+            corte = a + int(np.argmin(energia)) * ventana + ventana // 2
+        else:
+            corte = nominal
+        cortes.append(corte)
+        nominal = corte + tramo
+    cortes.append(total)
+    return list(zip(cortes[:-1], cortes[1:]))
+
+
 def cargar_audio(ffmpeg: str, video: Path):
     """Decodifica el audio con ffmpeg. faster-whisper lo haría con PyAV, pero
     sus versiones no siempre casan (TypeError con 'metadata_errors')."""
@@ -99,6 +130,9 @@ def main() -> int:
     parser.add_argument("--idioma", default=None, help="Código de idioma (es, en, ja...). Si se omite, Whisper lo detecta solo")
     parser.add_argument("--dispositivo", default="auto", help="cpu, cuda o auto (por defecto: auto)")
     parser.add_argument("--ffmpeg", default=None, help="Ruta a ffmpeg, si no está en el PATH ni en _herramientas/ffmpeg de la carpeta de trabajo")
+    parser.add_argument("--tramo-min", type=int, default=30,
+                        help="Minutos por tramo en audios largos (por defecto 30). Whisper calcula el espectrograma del audio entero de una vez: "
+                             "con un curso de 3 h necesita varios GB seguidos de memoria")
     args = parser.parse_args()
 
     video = Path(args.video)
@@ -135,24 +169,40 @@ def main() -> int:
     modelo = WhisperModel(args.modelo, device=args.dispositivo, compute_type=compute_type)
 
     print(f"Transcribiendo {video.name} (esto tarda; un vídeo de 90 min puede llevar bastante en CPU)...")
-    segmentos, info = modelo.transcribe(audio, language=args.idioma, vad_filter=True)
+    if isinstance(audio, str):
+        tramos = [(0, None)]
+    else:
+        tramos = tramos_por_silencio(audio, FRECUENCIA_WHISPER, args.tramo_min * 60)
+        if len(tramos) > 1:
+            print(f"  Audio largo: lo transcribo en {len(tramos)} tramos de ~{args.tramo_min} min, cortando en silencios")
 
     ruta_tsv = salida / "transcripcion.tsv"
     ruta_md = salida / "transcripcion.md"
+    # Se escribe en temporales y se renombra al terminar: si algo falla a medias, no queda
+    # una transcripción incompleta con el nombre de la buena.
+    tmp_tsv, tmp_md = ruta_tsv.with_suffix(".tsv.parcial"), ruta_md.with_suffix(".md.parcial")
 
-    with ruta_tsv.open("w", encoding="utf-8") as f_tsv, ruta_md.open("w", encoding="utf-8") as f_md:
+    with tmp_tsv.open("w", encoding="utf-8") as f_tsv, tmp_md.open("w", encoding="utf-8") as f_md:
         f_tsv.write("inicio_seg\tfin_seg\thora\ttexto\n")
         f_md.write(f"# Transcripción — {video.name}\n\n")
-        f_md.write(f"Idioma detectado: {info.language} (confianza {info.language_probability:.2f})\n\n")
         n = 0
-        for seg in segmentos:
-            texto = seg.text.strip()
-            hora = formatear_hora(seg.start)
-            f_tsv.write(f"{seg.start:.2f}\t{seg.end:.2f}\t{hora}\t{texto}\n")
-            f_md.write(f"**{hora}** {texto}\n\n")
-            n += 1
-            if n % 20 == 0:
-                print(f"  ... {n} segmentos, en {hora}")
+        for k, (ini, fin) in enumerate(tramos):
+            trozo = audio if isinstance(audio, str) else audio[ini:fin]
+            desfase = ini / FRECUENCIA_WHISPER
+            segmentos, info = modelo.transcribe(trozo, language=args.idioma, vad_filter=True)
+            if k == 0:
+                f_md.write(f"Idioma detectado: {info.language} (confianza {info.language_probability:.2f})\n\n")
+            for seg in segmentos:
+                texto = seg.text.strip()
+                inicio, final = seg.start + desfase, seg.end + desfase
+                hora = formatear_hora(inicio)
+                f_tsv.write(f"{inicio:.2f}\t{final:.2f}\t{hora}\t{texto}\n")
+                f_md.write(f"**{hora}** {texto}\n\n")
+                n += 1
+                if n % 20 == 0:
+                    print(f"  ... {n} segmentos, en {hora}")
+    os.replace(tmp_tsv, ruta_tsv)
+    os.replace(tmp_md, ruta_md)
 
     print(f"\nListo: {n} segmentos")
     print(f"  {ruta_tsv}")
