@@ -213,7 +213,7 @@ def buscar_nombres(texto: str, origen: str, nombres: list) -> list[str]:
         n = len(buscadas)
         junto = "".join(buscadas)
         encontrado = (
-            " ".join(buscadas) in texto_norm
+            f" {' '.join(buscadas)} " in f" {texto_norm} "  # palabras completas: «Ríos» no casa en «Usuarios»
             or (n > 1 and len(junto) >= 5 and junto in texto_junto)
             or any(
                 all(palabras_coinciden(l, b) for l, b in zip(leidas[i:i + n], buscadas))

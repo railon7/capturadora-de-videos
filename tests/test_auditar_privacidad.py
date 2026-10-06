@@ -99,3 +99,8 @@ def test_leer_lista_nombres_sin_ruta():
 
 def test_buscar_nombres_no_avisa_de_palabras_corrientes_parecidas_a_un_nombre_corto():
     assert m.buscar_nombres("Marca Material marcas", "ocr", ["María"]) == []
+
+
+def test_buscar_nombres_no_avisa_de_un_nombre_dentro_de_otra_palabra():
+    assert m.buscar_nombres("Diarios de usuarios", "ocr", ["Ríos"]) == []
+    assert len(m.buscar_nombres("Contacto: Ana Ríos", "ocr", ["Ríos"])) == 1

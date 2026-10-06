@@ -101,6 +101,11 @@ def test_no_tapa_palabras_corrientes_parecidas_a_un_nombre_corto():
     assert len(m.encontrar_cajas_a_redactar(_linea("Maria", "López"), ["María"])) == 1
 
 
+def test_no_tapa_un_nombre_dentro_de_otra_palabra():
+    assert m.encontrar_cajas_a_redactar(_linea("Diarios", "Usuarios"), ["Ríos"]) == []
+    assert len(m.encontrar_cajas_a_redactar(_linea("Pedro", "Rios"), ["Ríos"])) == 1
+
+
 def test_encontrar_cajas_no_tapa_palabras_que_no_se_parecen():
     assert m.encontrar_cajas_a_redactar(_linea("Pedido", "de", "compra"), ["Juan Martínez"]) == []
 

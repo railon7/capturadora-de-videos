@@ -251,7 +251,8 @@ def encontrar_cajas_a_redactar(palabras: list, nombres: list):
                     for inicio in range(len(indices) - tam + 1):
                         ventana = indices[inicio:inicio + tam]
                         leidas = [normalizadas[i] for i in ventana]
-                        exacta = " ".join(buscadas) in " ".join(leidas)
+                        # Palabras completas: «Ríos» no debe casar dentro de «Usuarios»
+                        exacta = f" {' '.join(buscadas)} " in f" {' '.join(leidas)} "
                         pegada = tam < n and len(junto) >= 5 and junto in "".join(leidas)
                         parecida = tam == n and all(palabras_coinciden(l, b) for l, b in zip(leidas, buscadas))
                         if exacta or pegada or parecida:
