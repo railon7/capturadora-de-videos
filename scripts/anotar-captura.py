@@ -72,6 +72,11 @@ def dibujar_marcadores(imagen_path: Path, salida_path: Path, marcas: list, porce
 
 
 def main() -> int:
+    # La ayuda y los mensajes llevan ①②③: en una consola de Windows (cp1252) no se pueden
+    # mostrar y el script se caía al imprimirlos. Se sustituyen en vez de fallar.
+    for flujo in (sys.stdout, sys.stderr):
+        if hasattr(flujo, "reconfigure"):
+            flujo.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("entrada", help="Imagen original (no se toca)")
     parser.add_argument("salida", help="Fichero de salida, distinto de la entrada")
