@@ -19,10 +19,13 @@ C:\Proyectos\ClienteX\
 │     ├─ Catalogo de capturas.md
 │     ├─ Mapa del video — bloques y pantallas.md
 │     └─ nombres-a-tapar.txt
-└─ 08-Formacion/
-   ├─ P-01-Login.md           (protocolo)
-   ├─ P-02-Compras.md
-   └─ P-03-Facturacion.md
+└─ ClienteX-Biblioteca/       (biblioteca del cliente: nuevo-documento.py --iniciar cliente)
+   ├─ _img/                   (capturas definitivas: SOP-ERP-001-01-login.png...)
+   ├─ entregables/            (HTML y PDF para entregar)
+   ├─ 90-archivo/             (obsoletos)
+   ├─ SOP-ERP-001_login.es.md          (un SOP, y su pareja SOP-ERP-001_login.en.md si hace falta)
+   ├─ SOP-ERP-002_compras.es.md
+   └─ GUI-ERP-001_facturacion.es.md    (una guía de usuario)
 ```
 
 ### Paso a paso
@@ -77,23 +80,29 @@ admin@clientex.com
 EOF
 
 # Extrae cada pantalla en calidad alta
-scripts\extraer-captura-puntual.ps1 -Video "C:\Videos\ClienteX-Demo.mp4" -Momento "00:05:20" -Salida "Trabajo-Demo/Capturas/Seleccionadas/P01-01-login.png"
+scripts\extraer-captura-puntual.ps1 -Video "C:\Videos\ClienteX-Demo.mp4" -Momento "00:05:20" -Salida "Trabajo-Demo/Capturas/Seleccionadas/SOP-ERP-001-01-login.png"
 
 # Tapa datos
-python scripts/redactar-captura.py "Trabajo-Demo/Capturas/Seleccionadas/P01-01-login.png" "Trabajo-Demo/Capturas/Editadas/P01-01-login.png" --nombres "Trabajo-Demo/Analisis/nombres-a-tapar.txt"
+python scripts/redactar-captura.py "Trabajo-Demo/Capturas/Seleccionadas/SOP-ERP-001-01-login.png" "Trabajo-Demo/Capturas/Editadas/SOP-ERP-001-01-login.png" --nombres "Trabajo-Demo/Analisis/nombres-a-tapar.txt"
 
 # Anota con círculos (si hace falta)
-python scripts/anotar-captura.py "Trabajo-Demo/Capturas/Editadas/P01-01-login.png" "Trabajo-Demo/Capturas/Final/P01-01-login.png" --marca 150,200 --marca 400,350
+python scripts/anotar-captura.py "Trabajo-Demo/Capturas/Editadas/SOP-ERP-001-01-login.png" "Trabajo-Demo/Capturas/Final/SOP-ERP-001-01-login.png" --marca 150,200 --marca 400,350
 
-# Escribe el protocolo (usa plantilla: plantillas/plantilla-protocolo.md)
-# Crea 08-Formacion/P-01-Login.md
+# Crea el documento (ID, nombre, frontmatter y plantilla de su tipo) y rellénalo.
+# Los criterios de redacción están en plantillas/plantilla-protocolo.md
+python scripts/nuevo-documento.py --tipo SOP --aplicacion ERP --titulo "Login" --cliente ClienteX --biblioteca "ClienteX-Biblioteca" --propietario "Tu Nombre"
+# Mueve las capturas definitivas a ClienteX-Biblioteca/_img/ con el nombre <ID>-<NN>-<descripcion>.png
+
+# Comprueba nombres, metadatos, imágenes y enlaces
+python scripts/validar-biblioteca.py "ClienteX-Biblioteca" --registro
 
 # Audita antes de entregar
 python scripts/auditar-privacidad.py --textos "Trabajo-Demo/Analisis" --ocr "Trabajo-Demo/Capturas/Editadas" --nombres "Trabajo-Demo/Analisis/nombres-a-tapar.txt"
 
 # Empaqueta
-python scripts/exportar-manual.py "08-Formacion/P-01-Login.md"
-# Sale 08-Formacion/P-01-Login.html — entrega esto
+python scripts/exportar-manual.py "ClienteX-Biblioteca/SOP-ERP-001_login.es.md" --pdf
+# Sale ClienteX-Biblioteca/entregables/SOP-ERP-001_login.es.html (y el .pdf) — entrega esto.
+# Mientras el documento no esté aprobado, lleva marca de agua BORRADOR o EN REVISIÓN.
 ```
 
 ---
@@ -144,15 +153,38 @@ python scripts/redactar-captura.py "Capturas/Seleccionadas" "Capturas/Redactadas
 ### Quiero exportar el manual a PDF
 
 ```bash
-# HTML se sale solo
-python scripts/exportar-manual.py "08-Formacion/P-01-Login.md"
+# HTML: sale solo
+python scripts/exportar-manual.py "ClienteX-Biblioteca/SOP-ERP-001_login.es.md"
 
-# Para PDF, descarga pandoc
-winget install pandoc
-
-# El script lo detecta y genera PDF también
-python scripts/exportar-manual.py "08-Formacion/P-01-Login.md" --pdf
+# PDF: con Chrome o Edge instalados no hace falta nada más
+python scripts/exportar-manual.py "ClienteX-Biblioteca/SOP-ERP-001_login.es.md" --pdf
+# Si no los encuentra, prueba con pandoc (winget install pandoc). Sin ninguno, el HTML sigue valiendo: Ctrl+P en el navegador.
 ```
+
+### Quiero el documento en español y en inglés
+
+```bash
+# Crea las dos versiones con el mismo ID: la española lista para rellenar y la inglesa con los encabezados traducidos
+python scripts/nuevo-documento.py --tipo SOP --aplicacion Holded --titulo "Emitir factura rectificativa" --titulo-en "Issue a corrective invoice" --cliente ClienteX --biblioteca "ClienteX-Biblioteca"
+# Crea SOP-HOLDED-001_emitir-factura-rectificativa.es.md y SOP-HOLDED-001_issue-a-corrective-invoice.en.md
+# Aprueba el español, pídele a Claude la traducción (queda en borrador-ia) y que una persona la revise.
+```
+
+### Tengo protocolos en el formato antiguo (P-02 · Nombre.md)
+
+```bash
+# Prueba primero: no escribe nada
+python scripts/migrar-protocolo.py "08-Formacion/P-02 · Circuito de compra.md" --tipo SOP --cliente ClienteX --biblioteca "ClienteX-Biblioteca" --simular
+# Si el resultado es el esperado, quita --simular. El original no se toca; las imágenes se copian a _img/ con su nombre nuevo.
+```
+
+### Quiero ver los patrones por aplicación y no en un solo fichero
+
+```bash
+python scripts/patrones-a-biblioteca.py          # un PAT por cada "Del proyecto: ..." de conocimiento/patrones-acumulados.md
+python scripts/validar-biblioteca.py --registro  # regenera conocimiento/biblioteca/00-gobierno/00_Registro.md
+```
+Se puede repetir: si un apartado no cambió no se toca, y si cambió se actualiza el PAT y sube su versión.
 
 ---
 

@@ -5,7 +5,7 @@ description: Convierte un vídeo (una demo, una reunión grabada, una formación
 
 # Vídeo → capturas → guion → manual
 
-Pipeline de cuatro pasos, independientes entre sí: para en el que haga falta.
+Pipeline de pasos independientes entre sí: para en el que haga falta.
 No asumas que el objetivo final es siempre un manual — a veces solo hacen
 falta las imágenes, o solo el guion de lo que se dijo.
 
@@ -16,6 +16,8 @@ falta las imágenes, o solo el guion de lo que se dijo.
 2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3   (+ generar-borrador-guion.py, opcional)
 3. PATRONES   metodologia/de-video-a-guion-y-patrones.md  §4     (+ consolidar-patrones.py)
 4. MANUAL     metodologia/de-capturas-a-manual.md   (+ redactar-captura.py OBLIGATORIO, anotar-captura.py, exportar-manual.py)
+5. BIBLIOTECA metodologia/biblioteca-de-conocimiento.md   (nuevo-documento.py al empezar el manual, validar-biblioteca.py al terminar;
+                                                            + migrar-protocolo.py, patrones-a-biblioteca.py)
 ```
 
 ## Antes de nada: ¿qué hace falta de verdad?
@@ -25,7 +27,8 @@ Pregunta si no está claro:
 - **Solo imágenes** de momentos concretos (para otra cosa, no un manual) →
   pasos 1 y 1bis, y si hacen falta pantallas puntuales en calidad, usa
   `scripts/extraer-captura-puntual.ps1` con el minuto que indique quien pide.
-- **Un manual de cliente / protocolo paso a paso** → los cinco pasos.
+- **Un manual, guía o procedimiento** (SOP, guía de usuario, tutorial...) → los pasos 1, 1bis, 2, 4 y 5. Antes de empezar, pregunta el tipo
+  (ver más abajo).
 - **Solo el guion de lo que se dijo**, sin manual → pasos 1, 1bis, 2-3.
 - **Patrones o lecciones reutilizables**, sin necesidad de manual → pasos 1,
   1bis, 2-3, centrado en el §4 de `metodologia/de-video-a-guion-y-patrones.md`.
@@ -33,6 +36,28 @@ Pregunta si no está claro:
 **El paso 1bis no se salta nunca, sea cual sea el destino final.** Sin un
 catálogo del contenido, ni la persona ni ningún LLM que retome el trabajo
 después sabe qué hay en las capturas sin abrirlas una por una.
+
+## Si el destino es un documento: qué tipo, de quién y en qué idioma
+
+Cada documento de la biblioteca tiene un tipo (`metodologia/biblioteca-de-conocimiento.md` §2). Pregunta, si no está claro:
+
+| Quiere... | Tipo |
+|---|---|
+| Explicar cómo es una aplicación y qué hace cada pantalla | **MAN** manual de aplicación (común, sin datos de cliente) |
+| Resolver una tarea concreta de alguien que ya usa la aplicación | **GUI** guía de usuario |
+| Un procedimiento de trabajo con responsable, frecuencia y registro | **SOP** (PNT) |
+| Enseñar desde cero con una lección guiada | **TUT** tutorial · **QSG** guía rápida |
+| Problemas y preguntas que se repiten | **FAQ** |
+
+Dos preguntas deciden el tipo: si el texto **hace actuar o informa**, y si el lector **aprende o trabaja**. Un documento, un tipo: si un
+texto necesita dos cosas, son dos documentos que se enlazan. Pregunta también:
+
+- **¿De un cliente o común?** Lo de un cliente va a `<Cliente>/Biblioteca` y enlaza al MAN común en vez de copiarlo.
+- **¿Solo en español o también en inglés?** El español se escribe primero. La pareja en inglés solo si hace falta.
+
+Dónde está la biblioteca: `--biblioteca "<Cliente>/Biblioteca"` para un cliente, o la variable `BIBLIOTECA_TAZUKE` / la carpeta
+`conocimiento/biblioteca/` del repo de la capturadora para la común. Si no existe, créala con
+`python scripts/nuevo-documento.py --iniciar cliente --biblioteca "<ruta>"` (o `comun`).
 
 ## 0 · Si el vídeo está en una web (YouTube...)
 
@@ -150,7 +175,11 @@ la columna se deja vacía — nunca una estimación por proporción del vídeo.
 
 Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
 
-1. Agrupa los bloques del mapa por a qué manual alimentan.
+0. **Antes de redactar, consulta lo que ya hay**: el MAN y los PAT de la aplicación en la biblioteca común, el glosario `GLO` y los
+   documentos del cliente. Enlaza a ellos en vez de repetirlos, y usa los términos del glosario.
+1. Agrupa los bloques del mapa por a qué manual alimentan, y **crea cada documento** con
+   `python scripts/nuevo-documento.py --tipo SOP --aplicacion "<app>" --titulo "<título>" --cliente "<Cliente>" --biblioteca "<ruta>"`
+   (`--titulo-en` si lleva pareja en inglés). Da el ID que llevan las capturas: `<ID>-<NN>-<descripcion>.png`.
 2. Saca cada captura en máxima calidad con `scripts/extraer-captura-puntual.ps1` en
    el momento ya localizado.
 3. **Mira la captura antes de ponerle nombre** — nunca al revés. El orden es
@@ -172,15 +201,31 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
    x1,y1 --marca x2,y2 ...`, un `--marca` por referencia en el orden en que
    el texto del paso las va a citar (la primera es ①). Ni este paso ni el
    anterior tocan nunca la `Seleccionada` original.
-7. Escribe el protocolo con `plantillas/plantilla-protocolo.md`, en
-   imperativo, un paso por decisión, con su apartado "Qué NO hacer".
+7. Rellena el documento creado (su plantilla está en `plantillas/biblioteca/`; los criterios de redacción, en
+   `plantillas/plantilla-protocolo.md`): imperativo, un paso por decisión, roles y no nombres, con su apartado "Qué NO hacer".
+   Las capturas definitivas van en `_img/` junto al documento. Borra los comentarios GUÍA al terminar.
 8. Antes de entregar, pasa `scripts/auditar-privacidad.py --textos
    "Analisis" --ocr "Capturas/Editadas" --nombres "nombres-a-tapar.txt"`
    como segunda comprobación — no sustituye el paso 5, confirma que no se
    dejó nada sin tapar.
 9. Empaqueta el entregable: `pip install markdown` y `python
-   scripts/exportar-manual.py "<protocolo>.md"` — deja un HTML autocontenido
-   con las imágenes incrustadas, listo para mandar o imprimir a PDF.
+   scripts/exportar-manual.py "<documento>.md" --pdf` — deja un HTML autocontenido con las imágenes incrustadas y,
+   con Chrome o Edge instalados, el PDF. Si el documento no está aprobado, sale con marca de agua (BORRADOR, EN REVISIÓN).
+
+## 5 · Biblioteca: validar, aprobar y traducir
+
+1. **Valida**: `python scripts/validar-biblioteca.py "<biblioteca>" --registro`. Arregla los errores; los avisos se miran. Regenera
+   `00_Registro.md`, que es el cuadro de mando de la biblioteca.
+2. **La aprobación es de una persona.** Pasa el documento a `revision` y dile a quién tiene que revisarlo. No pongas `aprobado`,
+   ni `revisor` ni `revisado` por tu cuenta: los rellena quien valida, o tú con lo que esa persona te dicte. Al aprobar, la versión
+   pasa a 1.0 y se añade la fila en el Historial de cambios.
+3. **Traducción al inglés**, solo si se pidió: parte de la versión española aprobada y del glosario `GLO`, con la misma estructura y
+   las mismas imágenes, sin añadir ni quitar contenido. Los nombres de pantallas y botones, como los llama la interfaz de la
+   aplicación en inglés. Deja `traduccion_estado: borrador-ia` y avisa de que falta la revisión humana. Si cambia el español, la
+   versión inglesa queda desfasada.
+4. **Documentos que ya existían**: un protocolo en el formato antiguo (`P-02 · Nombre.md`) se migra con
+   `python scripts/migrar-protocolo.py "<protocolo>.md" --tipo SOP --cliente "<Cliente>" --biblioteca "<ruta>"`. No toca el original.
+   Los patrones de `conocimiento/patrones-acumulados.md` pasan a la biblioteca con `python scripts/patrones-a-biblioteca.py`.
 
 ## Reglas que no se aflojan
 
@@ -204,10 +249,14 @@ Sigue `metodologia/de-capturas-a-manual.md`. Resumen del orden que importa:
   "compras"), no nombres propios.
 - **El nombre del fichero se pone después de mirar la captura.** Es el error
   que más revisión cuesta cuando se salta.
+- **Todo documento nace con `nuevo-documento.py`**, no a mano: así tiene ID, nombre en kebab-case, frontmatter y plantilla. Nunca
+  se cambia el ID de un documento existente ni se reutiliza el de uno archivado; un cambio de título no cambia el ID.
+- **Nada se entrega sin validar** (`validar-biblioteca.py` sin errores) y un documento sin aprobar no se entrega sin avisar de que
+  está en borrador o en revisión.
 
 Termina indicando en qué paso del pipeline se ha quedado el trabajo y cuál
 es la siguiente acción concreta.
 
 ---
 
-*Skill v1.6 · repositorio Capturadora de Vídeos*
+*Skill v1.7 · repositorio Capturadora de Vídeos*

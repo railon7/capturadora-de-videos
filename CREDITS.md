@@ -68,3 +68,18 @@ DNI/NIE y del CIF español — son estándares administrativos públicos (BOE),
 no código de ningún proyecto de terceros. La localización de texto sobre la
 imagen usa `pytesseract.image_to_data` (Apache-2.0, ya era dependencia del
 repo) para obtener la caja de cada palabra detectada.
+
+## Ideas de documentación para la biblioteca de conocimiento (sin copiar texto ni código)
+
+La organización de la biblioteca (`metodologia/biblioteca-de-conocimiento.md`, `plantillas/biblioteca/`) se apoya en estas
+fuentes. Se tomaron ideas de estructura, no texto ni código. La investigación completa está en
+`conocimiento/organizacion-documental/`.
+
+| Fuente | Licencia | Qué inspiró aquí |
+|---|---|---|
+| [Diátaxis](https://diataxis.fr/) (Daniele Procida) | CC BY-SA 4.0 | Los cuatro tipos (tutorial, cómo hacer, referencia, explicación) y la brújula para elegir el de cada documento. No se copió texto: de hacerlo, la parte copiada heredaría CC BY-SA |
+| [The Good Docs Project](https://www.thegooddocsproject.dev/template) | Zero-Clause BSD (según su `LICENSE.txt`) | Qué tipos de plantilla existen (how-to, tutorial, reference, troubleshooting, release notes, glossary, quickstart). Las plantillas de este repo son propias |
+| [DITA, OASIS](https://docs.oasis-open.org/dita/v1.2/os/spec/archSpec/dita_technicalContent_InformationTypes.html) | Especificación abierta | Concepto, tarea y referencia como temas reutilizables: "escribir una vez, enlazar muchas" |
+| ISO 9001 y guías de control documental | Norma de pago, no consultada en su texto | Solo las prácticas que describen las guías públicas: identificador, versión mayor.menor, estados, revisión anual, archivo |
+| Guías de propiedades y alias de Obsidian | Documentación pública | Alias para el título en el otro idioma, etiquetas anidadas, convenciones de nombres de propiedades |
+

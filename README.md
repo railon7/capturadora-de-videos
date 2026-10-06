@@ -43,17 +43,26 @@ Vídeo (fichero local, o enlace de YouTube → 0. DESCARGA — scripts/descargar
   │     los funde en conocimiento/patrones-acumulados.md: la segunda vez
   │     que aparece un patrón deja de ser una anécdota de un solo cliente.
   │
-  └─► 4. MANUAL — metodologia/de-capturas-a-manual.md
-        Capturas seleccionadas → DNI/CIF/tarjeta/nombres tapados con
-        scripts/redactar-captura.py (obligatorio por protección de
-        datos) → recortadas y anotadas con círculos numerados
-        (scripts/anotar-captura.py) → protocolo, usando
-        plantillas/plantilla-protocolo.md → entregable único con
-        scripts/exportar-manual.py, con scripts/auditar-privacidad.py
-        como segunda comprobación antes de entregar.
+  ├─► 4. MANUAL — metodologia/de-capturas-a-manual.md
+  │     Capturas seleccionadas → DNI/CIF/tarjeta/nombres tapados con
+  │     scripts/redactar-captura.py (obligatorio por protección de
+  │     datos) → recortadas y anotadas con círculos numerados
+  │     (scripts/anotar-captura.py) → protocolo, usando
+  │     plantillas/plantilla-protocolo.md → entregable único con
+  │     scripts/exportar-manual.py, con scripts/auditar-privacidad.py
+  │     como segunda comprobación antes de entregar.
+  │
+  └─► 5. BIBLIOTECA — metodologia/biblioteca-de-conocimiento.md
+        Cada documento nace con scripts/nuevo-documento.py (ID, nombre en
+        kebab-case, frontmatter y plantilla de su tipo: manual de aplicación,
+        guía de usuario, SOP, tutorial, guía rápida, FAQ...), se comprueba con
+        scripts/validar-biblioteca.py, se aprueba por una persona, se traduce
+        al inglés si hace falta y se entrega con scripts/exportar-manual.py.
+        Los protocolos antiguos se pasan con scripts/migrar-protocolo.py y los
+        patrones acumulados con scripts/patrones-a-biblioteca.py.
 ```
 
-Los pasos 2-4 son independientes entre sí: si solo hacen falta las imágenes
+Los pasos 2-5 son independientes entre sí: si solo hacen falta las imágenes
 (por ejemplo, para alimentar otra cosa que no es un manual), se para después
 del catálogo. Si hace falta el guion de lo que se dijo sin escribir manual,
 se para en el 2-3. **El catálogo (1bis) no se salta nunca**: sin él, nadie
@@ -112,17 +121,28 @@ python scripts/transcribir.py "C:\ruta\al\video.mp4" --idioma es
 python scripts/generar-borrador-guion.py "Analisis/transcripcion.tsv" --catalogo "Analisis/Catalogo de capturas.md"
 
 # 4a. Tapar DNI/CIF/tarjeta/email/teléfono y los nombres de la lista (obligatorio)
-python scripts/redactar-captura.py "Capturas/Seleccionadas/P02-04.png" "Capturas/Editadas/P02-04-tapada.png" --nombres "nombres-a-tapar.txt"
+python scripts/redactar-captura.py "Capturas/Seleccionadas/SOP-HOLDED-003-04.png" "Capturas/Editadas/SOP-HOLDED-003-04-tapada.png" --nombres "nombres-a-tapar.txt"
 
 # 4b. Anotar la ya tapada con círculos numerados -> esta es la definitiva
-python scripts/anotar-captura.py "Capturas/Editadas/P02-04-tapada.png" "Capturas/Editadas/P02-04.png" --marca 120,80 --marca 300,200
+python scripts/anotar-captura.py "Capturas/Editadas/SOP-HOLDED-003-04-tapada.png" "Capturas/Editadas/SOP-HOLDED-003-04.png" --marca 120,80 --marca 300,200
 
 # 4c. Antes de entregar: segunda comprobación de que no queda nada sin tapar
 python scripts/auditar-privacidad.py --textos "Analisis" --ocr "Capturas/Editadas" --nombres "nombres-a-tapar.txt"
 
-# 4c. Empaquetar el manual terminado en un único HTML para el cliente
+# 5a. Crear la estructura de la biblioteca de un cliente (una vez) y un documento nuevo
+python scripts/nuevo-documento.py --iniciar cliente --biblioteca "ClienteX/Biblioteca"
+python scripts/nuevo-documento.py --tipo SOP --aplicacion Holded --titulo "Emitir factura rectificativa" --titulo-en "Issue a corrective invoice" --cliente ClienteX --biblioteca "ClienteX/Biblioteca"
+
+# 5b. Comprobar la biblioteca (nombres, metadatos, imágenes, parejas ES-EN) y regenerar su registro
+python scripts/validar-biblioteca.py "ClienteX/Biblioteca" --registro
+
+# 5c. Empaquetar el documento en un único HTML (y PDF con Chrome o Edge) para el cliente
 pip install markdown
-python scripts/exportar-manual.py "08-Formacion/P-02 · Circuito de compra.md"
+python scripts/exportar-manual.py "ClienteX/Biblioteca/SOP-HOLDED-001_emitir-factura-rectificativa.es.md" --pdf
+
+# 5d. Pasar a la biblioteca lo que ya existía: un protocolo en el formato antiguo y los patrones acumulados
+python scripts/migrar-protocolo.py "08-Formacion/P-02 · Circuito de compra.md" --tipo SOP --cliente ClienteX --biblioteca "ClienteX/Biblioteca"
+python scripts/patrones-a-biblioteca.py
 
 # 3b. Cuando el proyecto ya tiene Analisis/Patrones reutilizables.md, fundirlo aquí
 python scripts/consolidar-patrones.py "<proyecto>/Analisis/Patrones reutilizables.md" --proyecto "<nombre del cliente>"
@@ -135,10 +155,10 @@ Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
 
 | Carpeta | Contenido |
 |---|---|
-| `scripts/` | Descarga de vídeos de YouTube, extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, recorte de la pantalla compartida en videollamadas, detección de redundantes, catálogo de contenido, borrador del guion, anotación, redacción de datos personales, transcripción, auditoría de privacidad, exportación del manual y consolidación de patrones |
-| `plantillas/` | Plantillas del mapa de vídeo, del protocolo/manual y de los patrones reutilizables |
-| `metodologia/` | Los dos procedimientos: vídeo → guion y patrones · capturas → manual |
-| `conocimiento/` | `patrones-acumulados.md` — el conocimiento reutilizable de todos los vídeos procesados con este repo, no de un proyecto en concreto |
+| `scripts/` | Descarga de vídeos de YouTube, extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, recorte de la pantalla compartida en videollamadas, detección de redundantes, catálogo de contenido, borrador del guion, anotación, redacción de datos personales, transcripción, auditoría de privacidad, exportación del manual (HTML y PDF), consolidación de patrones y la biblioteca de conocimiento: `biblioteca.py` (utilidades compartidas), `nuevo-documento.py`, `validar-biblioteca.py`, `migrar-protocolo.py` y `patrones-a-biblioteca.py` |
+| `plantillas/` | Plantillas del mapa de vídeo y de los patrones reutilizables, los criterios de redacción (`plantilla-protocolo.md`) y `biblioteca/`, una plantilla por tipo de documento (MAN, GUI, SOP, TUT, QSG, FAQ, GLO, NOV, DEC, PAT) |
+| `metodologia/` | Los tres procedimientos: vídeo → guion y patrones · capturas → manual · biblioteca de conocimiento (tipos, nombres ES/EN, metadatos, ciclo de vida) |
+| `conocimiento/` | El conocimiento reutilizable, no de un proyecto en concreto: `patrones-acumulados.md` (bandeja de entrada de patrones), `biblioteca/` (la biblioteca común: glosario ES-EN, patrones y, a medida que se creen, manuales por aplicación) y `organizacion-documental/` (las conclusiones de la investigación que sustenta la biblioteca) |
 | `.claude/skills/video-a-manual/` | Skill de Claude Code que guía el proceso completo en cualquier proyecto |
 | `tests/` | Pruebas de las funciones puras de cada script (`pytest tests/`) |
 | `.github/workflows/ci.yml` | Comprueba sintaxis y pasa los tests en cada push |
@@ -156,8 +176,10 @@ dentro de él (usa `-CarpetaHerramientas` para otra ruta). **Reescribe las
 rutas dentro de la skill copiada** para que apunten a esa carpeta, así los
 comandos de `SKILL.md` funcionan tal cual en el proyecto de destino, sin
 tener que ajustar nada a mano. No copia `conocimiento/`: los patrones
-acumulados son de este repo, no de cada proyecto — se consolidan aquí con
-`consolidar-patrones.py`, no al revés.
+acumulados y la biblioteca común son de este repo, no de cada proyecto — se consolidan aquí con
+`consolidar-patrones.py`, no al revés. Los documentos de un cliente van a su propia biblioteca
+(`<Cliente>/Biblioteca`): en el proyecto de destino, pasa siempre `--biblioteca "<Cliente>/Biblioteca"` a los
+scripts de la biblioteca, porque ahí no existe `conocimiento/biblioteca/`.
 
 Una vez copiada, Claude Code detecta la skill sola la próxima vez que se
 abra en esa carpeta de proyecto — no hace falta ningún paso de registro
@@ -189,8 +211,10 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   PyAV); para usar la GPU (`--dispositivo cuda`, mucho más rápido), también
   `pip install nvidia-cublas-cu12 nvidia-cudnn-cu12`, que el script enlaza
   solo en Windows. `exportar-manual.py` necesita
-  `pip install markdown`; `generar-borrador-guion.py` y
-  `consolidar-patrones.py` no necesitan nada aparte de la librería estándar.
+  `pip install markdown` (y Chrome o Edge para el PDF; sin ellos prueba con pandoc);
+  `generar-borrador-guion.py`, `consolidar-patrones.py` y todos los scripts de la biblioteca
+  (`biblioteca.py`, `nuevo-documento.py`, `validar-biblioteca.py`, `migrar-protocolo.py`,
+  `patrones-a-biblioteca.py`) no necesitan nada aparte de la librería estándar.
 - El texto OCR de `catalogar-capturas.py`, `redactar-captura.py` (obligatorio,
   no funciona sin OCR) y el modo `--ocr` de `auditar-privacidad.py` necesitan
   además `pip install pytesseract` y el binario

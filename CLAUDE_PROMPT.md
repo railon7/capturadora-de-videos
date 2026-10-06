@@ -70,7 +70,7 @@ Tengo un protocolo casi terminado. Necesito:
 
 El vídeo tenía estos nombres: [LISTA DE NOMBRES]
 Las capturas sin redactar están en: Trabajo/Capturas/Seleccionadas/
-El protocolo está en: 08-Formacion/P-01-Compras.md
+El documento está en: ClienteX-Biblioteca/SOP-ERP-001_compras.es.md
 
 Guíame por los pasos, command by command.
 ```
@@ -100,7 +100,7 @@ Vídeos:
 ## "Tengo un manual terminado, quiero exportarlo"
 
 ```
-Tengo un manual escrito en Markdown en: 08-Formacion/P-01-Procedimiento.md
+Tengo un manual escrito en Markdown en: ClienteX-Biblioteca/SOP-ERP-001_procedimiento.es.md
 
 Quiero:
 1. Empaquetarlo en un HTML autocontenido (con imágenes incrustadas)
@@ -139,6 +139,30 @@ Tengo:
 - Proyecto nuevo en: C:\Proyectos\ClienteNuevo
 
 Pasos exactos, por favor.
+```
+
+---
+
+## "Quiero crear un documento de la biblioteca"
+
+```
+Quiero crear [un SOP / una guía de usuario / un tutorial / un manual de aplicación] de [APLICACIÓN]
+para [CLIENTE o "común"], a partir del vídeo [NOMBRE] que ya tengo catalogado en [CARPETA DE TRABAJO].
+La biblioteca del cliente está en: [RUTA]/Biblioteca
+Idioma: [solo español / español e inglés]
+
+Antes de redactar, mira qué hay ya de esa aplicación en la biblioteca común y enlázalo en vez de repetirlo.
+Cuando termines, valida la biblioteca y dime qué falta para poder aprobarlo (no lo apruebes tú).
+```
+
+---
+
+## "Tengo protocolos antiguos (P-02 · Nombre.md)"
+
+```
+Tengo protocolos en el formato antiguo en: [CARPETA]
+Quiero pasarlos a la biblioteca del cliente [CLIENTE] en: [RUTA]/Biblioteca
+Primero con --simular, y dime qué avisos salen antes de escribir nada.
 ```
 
 ---

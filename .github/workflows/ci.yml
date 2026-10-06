@@ -18,6 +18,8 @@ jobs:
         run: python -m py_compile scripts/*.py
       - name: Ejecutar pytest
         run: python -m pytest tests/ -v
+      - name: Validar la biblioteca de conocimiento común
+        run: python scripts/validar-biblioteca.py conocimiento/biblioteca
 
   sintaxis-powershell:
     runs-on: ubuntu-latest

@@ -13,6 +13,18 @@ protocolos que se forman solos.
 Si hay muchos, ordénalos por lo que bloquea antes: primero los procesos de
 mayor volumen o los que son condición para arrancar algo, después el resto.
 
+**Decide el tipo de cada uno** (SOP, guía de usuario, tutorial...: ver
+`metodologia/biblioteca-de-conocimiento.md` §2) y **créalo ya**, vacío, con
+`scripts/nuevo-documento.py`. Así tiene su ID desde el principio y las
+capturas se nombran con él:
+
+```bash
+python scripts/nuevo-documento.py --tipo SOP --aplicacion "Holded" --titulo "Comparar proveedores" --cliente "ClienteX" --biblioteca "ClienteX/Biblioteca"
+```
+
+Antes de redactar, mira lo que ya hay en la biblioteca para esa aplicación
+(el manual MAN, los patrones PAT, el glosario) y enlaza en lugar de repetir.
+
 ## 2 · Saca las capturas en máxima calidad
 
 Con los tiempos ya localizados en el mapa del vídeo:
@@ -35,7 +47,8 @@ hasta la revisión. El orden es siempre:
 
 **extraer → mirar → renombrar → enlazar**
 
-Nombra con `<código-de-protocolo>-<orden>-<descripción>.png`.
+Nombra con `<ID>-<NN>-<descripcion>.png`, con el ID del documento al que alimenta
+(`SOP-HOLDED-003-04-comparativo-proveedores.png`). Las definitivas van a `_img/` junto al documento.
 
 ## 4 · Recorta y anota
 
@@ -54,7 +67,7 @@ seleccionada.
   `scripts/redactar-captura.py` lo automatiza en parte:
 
   ```bash
-  python scripts/redactar-captura.py "Capturas/Seleccionadas/P02-04.png" "Capturas/Editadas/P02-04-tapada.png" --nombres "nombres-a-tapar.txt"
+  python scripts/redactar-captura.py "Capturas/Seleccionadas/SOP-HOLDED-003-04.png" "Capturas/Editadas/SOP-HOLDED-003-04-tapada.png" --nombres "nombres-a-tapar.txt"
   ```
 
   DNI, NIE, CIF, tarjeta, email y teléfono se detectan solos (tienen dígito
@@ -71,19 +84,20 @@ seleccionada.
   círculo tape justo lo que había que numerar):
 
   ```bash
-  python scripts/anotar-captura.py "Capturas/Editadas/P02-04-tapada.png" "Capturas/Editadas/P02-04.png" --marca 120,80 --marca 300,200
+  python scripts/anotar-captura.py "Capturas/Editadas/SOP-HOLDED-003-04-tapada.png" "Capturas/Editadas/SOP-HOLDED-003-04.png" --marca 120,80 --marca 300,200
   ```
 
   El primer `--marca` es el círculo ①, el segundo el ②, y así sucesivamente
-  — en el mismo orden en que el texto los va a citar. `P02-04.png` (sin
+  — en el mismo orden en que el texto los va a citar. `SOP-HOLDED-003-04.png` (sin
   "-tapada") es la versión definitiva; el intermedio se puede borrar
   después. Ningún script apunta nunca a `Seleccionadas` como salida: las
   dos se niegan salvo `--forzar`, precisamente para no perder la original
   si el resultado no convence.
 
-## 5 · Escribe el protocolo
+## 5 · Escribe el documento
 
-Con `plantillas/plantilla-protocolo.md`. El texto referencia las capturas
+Sobre el fichero que creó `nuevo-documento.py` (su plantilla está en `plantillas/biblioteca/`; los criterios de
+redacción, en `plantillas/plantilla-protocolo.md`). El texto referencia las capturas
 por su numeración circulada ("rellena el plazo de entrega ①"), no las
 describe ("en el campo de la parte superior derecha"). El apartado **Qué NO
 hacer** es el que más vale: ahí va todo lo que ya se sabe que confunde o que
@@ -129,9 +143,12 @@ sin `--nombres` no detecta nombres propios ni de empresa, y no detecta
 importes sin formato reconocible. No sustituye la revisión humana del
 paso 4 — la complementa.
 
-## 8 · Empaqueta el entregable
+## 8 · Valida y empaqueta el entregable
 
-El protocolo vive como Markdown + imágenes sueltas mientras se escribe —
+Antes de empaquetar, `python scripts/validar-biblioteca.py "<biblioteca>" --registro` comprueba nombre, metadatos,
+imágenes y enlaces. Un documento sin aprobar sale con marca de agua; aprobar es cosa de quien lo revisa.
+
+El documento vive como Markdown + imágenes sueltas mientras se escribe —
 así se edita mejor — pero eso no es lo que se le manda a alguien fuera del
 equipo, porque las rutas relativas a las imágenes se rompen en cuanto el
 fichero sale de su carpeta. `scripts/exportar-manual.py` empaqueta las dos
@@ -139,14 +156,16 @@ cosas en un único HTML, con las imágenes incrustadas:
 
 ```bash
 pip install markdown
-python scripts/exportar-manual.py "08-Formacion/P-02 · Circuito de compra.md"
+python scripts/exportar-manual.py "ClienteX/Biblioteca/SOP-HOLDED-003_comparar-proveedores.es.md" --pdf
 ```
 
-El HTML resultante se abre en cualquier navegador tal cual, y desde ahí se
-imprime a PDF (Ctrl+P → Guardar como PDF) si hace falta ese formato. Con
-`--pdf` intenta generarlo directamente vía `pandoc`, si está instalado —
-si no lo encuentra, no es un error: el HTML ya es un entregable válido por
-sí solo.
+El HTML resultante se abre en cualquier navegador tal cual. Lee el frontmatter (título, idioma, ID, versión y estado
+salen en la cabecera y el pie) y, si hay una carpeta `entregables/` junto al documento, deja ahí la salida. Con `--pdf`
+genera también el PDF con Chrome o Edge, con la marca Tazuke; si no los encuentra, prueba con `pandoc`. Un PDF que no sale
+no es un error: el HTML ya es un entregable válido por sí solo.
+
+Si lo que se tiene es un protocolo del formato antiguo (`P-02 · Circuito de compra.md`), antes se migra:
+`python scripts/migrar-protocolo.py "<protocolo>.md" --tipo SOP --cliente "<Cliente>" --biblioteca "<ruta>"`.
 
 ## Cuando las capturas son de un entorno de ejemplo
 

@@ -97,7 +97,7 @@ Te deja un fichero con la transcripción cruzada con el catálogo — todavía t
 **DNI, CIF, nombres propios no pueden salir.**
 
 ```bash
-python scripts/redactar-captura.py "Capturas/Seleccionadas/P01-01.png" "Capturas/Editadas/P01-01.png" --nombres "nombres-a-tapar.txt"
+python scripts/redactar-captura.py "Capturas/Seleccionadas/SOP-ERP-001-01.png" "Capturas/Editadas/SOP-ERP-001-01.png" --nombres "nombres-a-tapar.txt"
 ```
 
 Dónde `nombres-a-tapar.txt` es:
@@ -112,14 +112,21 @@ Tapa todo automáticamente (DNI, email, teléfono se detectan solos; nombres van
 ### 7. Anota con círculos numerados
 
 ```bash
-python scripts/anotar-captura.py "Capturas/Editadas/P01-01.png" "Capturas/Final/P01-01.png" --marca 120,80 --marca 300,200
+python scripts/anotar-captura.py "Capturas/Editadas/SOP-ERP-001-01.png" "Capturas/Final/SOP-ERP-001-01.png" --marca 120,80 --marca 300,200
 ```
 
 Dibuja ① ② ③ en los lugares que le indiques. Úsalo después de tapar datos.
 
-### 8. Escribe el protocolo
+### 8. Crea y escribe el documento
 
-Usa `plantillas/plantilla-protocolo.md`. Es un template paso a paso.
+Decide el tipo (SOP, guía de usuario, tutorial...) y créalo con su ID y su plantilla:
+
+```bash
+python scripts/nuevo-documento.py --tipo SOP --aplicacion ERP --titulo "Login" --cliente ClienteX --biblioteca "ClienteX-Biblioteca"
+```
+
+Rellénalo siguiendo los criterios de `plantillas/plantilla-protocolo.md`. Las capturas definitivas van a `_img/` con el
+nombre `<ID>-<NN>-<descripcion>.png`.
 
 ### 9. Antes de entregar, audita privacidad
 
@@ -129,14 +136,23 @@ python scripts/auditar-privacidad.py --textos "Analisis" --ocr "Capturas/Editada
 
 Segunda opinión automática. No es garantía legal, **revisa a ojo antes de mandar nada a cliente**.
 
-### 10. (Opcional) Empaqueta en un HTML
+### 10. Valida la biblioteca
+
+```bash
+python scripts/validar-biblioteca.py "ClienteX-Biblioteca" --registro
+```
+
+Comprueba nombres, metadatos, imágenes y enlaces, y regenera `00_Registro.md`. Sin errores antes de pasar a revisión.
+
+### 11. (Opcional) Empaqueta en un HTML y un PDF
 
 ```bash
 pip install markdown
-python scripts/exportar-manual.py "08-Manual/P-01-Circuito.md"
+python scripts/exportar-manual.py "ClienteX-Biblioteca/SOP-ERP-001_login.es.md" --pdf
 ```
 
-Sale `P-01-Circuito.html` con todas las imágenes incrustadas. Se abre en cualquier navegador, se imprime a PDF desde ahí.
+Sale en `entregables/` con todas las imágenes incrustadas; el PDF lo hace Chrome o Edge. Si el documento no está aprobado,
+lleva marca de agua BORRADOR o EN REVISIÓN.
 
 ---
 
@@ -149,7 +165,7 @@ Sale `P-01-Circuito.html` con todas las imágenes incrustadas. Se abre en cualqu
 → Pasos 1, 2, 4, 5.
 
 ### Quiero un manual para cliente
-→ Pasos 1–10. Dedica tiempo al paso 2 (catálogo) y paso 6 (redacción de datos).
+→ Pasos 1–11. Dedica tiempo al paso 2 (catálogo) y paso 6 (redacción de datos).
 
 ---
 
