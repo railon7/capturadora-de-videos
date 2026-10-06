@@ -30,9 +30,11 @@ Uso (una carpeta entera, mismo nombre de fichero dentro de la salida):
     python redactar-captura.py "Capturas/Editadas" "Capturas/Editadas-redactadas" --carpeta --nombres nombres-a-tapar.txt
 """
 import argparse
+import difflib
 import re
 import shutil
 import sys
+import unicodedata
 from pathlib import Path
 
 RUTAS_TESSERACT_WINDOWS = [
@@ -140,21 +142,68 @@ def leer_lista_nombres(ruta: str) -> list:
     ]
 
 
-def obtener_palabras_ocr(imagen_path: Path):
+# --- Comparación de nombres tolerante al OCR. El OCR se come tildes
+# ("Martinez") y confunde la última letra ("Martine:", "Martines"), así que
+# se compara sin tildes ni puntuación y, en palabras largas, por parecido.
+
+def normalizar(texto: str) -> str:
+    """Minúsculas, sin tildes y sin puntuación en los bordes de cada palabra."""
+    sin_tildes = "".join(
+        c for c in unicodedata.normalize("NFKD", texto) if not unicodedata.combining(c)
+    )
+    palabras = [p.strip(".,:;!?¡¿()[]{}\"'«»-_/|") for p in sin_tildes.lower().split()]
+    return " ".join(p for p in palabras if p)
+
+
+def palabras_coinciden(leida: str, buscada: str, parecido_minimo: float = 0.75) -> bool:
+    """`leida` (OCR) y `buscada` (lista), ya normalizadas, cuentan como la misma
+    palabra si son iguales o, con 5 letras o más, si se parecen lo bastante."""
+    if leida == buscada:
+        return True
+    if min(len(leida), len(buscada)) < 5:
+        return False
+    return difflib.SequenceMatcher(None, leida, buscada).ratio() >= parecido_minimo
+
+
+def elegir_idioma_ocr(disponibles) -> str:
+    """spa+eng si Tesseract tiene el español instalado; si no, lo que haya."""
+    disponibles = set(disponibles or [])
+    elegidos = [i for i in ("spa", "eng") if i in disponibles]
+    return "+".join(elegidos) if elegidos else "eng"
+
+
+def escala_ocr_auto(ancho: int) -> int:
+    """Tesseract no lee la letra pequeña de una captura de pantalla a tamaño
+    real; ampliarla 2-3 veces antes del OCR multiplica lo que lee."""
+    if ancho < 1400:
+        return 3
+    if ancho < 2500:
+        return 2
+    return 1
+
+
+def obtener_palabras_ocr(imagen_path: Path, escala: int = None, idioma: str = "spa+eng"):
     import pytesseract
     from pytesseract import Output
     from PIL import Image
 
-    datos = pytesseract.image_to_data(Image.open(imagen_path), lang="spa+eng", output_type=Output.DICT)
+    img = Image.open(imagen_path)
+    escala = escala or escala_ocr_auto(img.width)
+    if escala > 1:
+        img = img.resize((img.width * escala, img.height * escala), Image.LANCZOS)
+    datos = pytesseract.image_to_data(img, lang=idioma, output_type=Output.DICT)
     palabras = []
     for i in range(len(datos["text"])):
         texto = datos["text"][i].strip()
         if not texto:
             continue
+        # Las cajas vuelven a coordenadas de la imagen original
+        x, y = datos["left"][i] // escala, datos["top"][i] // escala
+        w, h = -(-datos["width"][i] // escala), -(-datos["height"][i] // escala)
         palabras.append({
             "texto": texto,
             "linea": (datos["block_num"][i], datos["par_num"][i], datos["line_num"][i]),
-            "caja": (datos["left"][i], datos["top"][i], datos["width"][i], datos["height"][i]),
+            "caja": (x, y, w, h),
         })
     return palabras
 
@@ -169,8 +218,10 @@ def caja_union(cajas: list):
 
 def encontrar_cajas_a_redactar(palabras: list, nombres: list):
     """Devuelve [(caja, tipo), ...]. Primero por patrón verificable palabra a
-    palabra; luego, dentro de cada línea, por coincidencia literal con la
-    lista de nombres (que sí puede ocupar varias palabras seguidas)."""
+    palabra; luego, dentro de cada línea, por coincidencia con la lista de
+    nombres (que puede ocupar varias palabras seguidas). La coincidencia no
+    distingue tildes ni puntuación y tolera errores pequeños del OCR en
+    palabras largas ("Martine:" por "Martínez")."""
     encontradas = []
 
     for p in palabras:
@@ -182,24 +233,30 @@ def encontrar_cajas_a_redactar(palabras: list, nombres: list):
         lineas = {}
         for idx, p in enumerate(palabras):
             lineas.setdefault(p["linea"], []).append(idx)
+        normalizadas = [normalizar(p["texto"]) for p in palabras]
 
         for indices in lineas.values():
-            texto_linea = " ".join(palabras[i]["texto"] for i in indices)
-            texto_linea_bajo = texto_linea.lower()
             for nombre in nombres:
-                nombre_bajo = nombre.lower().strip()
-                if not nombre_bajo or nombre_bajo not in texto_linea_bajo:
+                buscadas = normalizar(nombre).split()
+                if not buscadas:
                     continue
-                # localiza qué palabras de la línea componen la coincidencia
-                num_palabras_nombre = len(nombre_bajo.split())
-                for inicio in range(len(indices) - num_palabras_nombre + 1):
-                    ventana = indices[inicio:inicio + num_palabras_nombre]
-                    texto_ventana = " ".join(palabras[i]["texto"] for i in ventana).lower()
-                    if texto_ventana == nombre_bajo or nombre_bajo in texto_ventana:
-                        caja = caja_union([palabras[i]["caja"] for i in ventana])
-                        encontradas.append((caja, "nombre de la lista"))
+                n = len(buscadas)
+                junto = "".join(buscadas)
+                # Ventanas de 1 a n palabras: el OCR a veces pega varias en una
+                # ("JUANBLANCOPEREZ"), y entonces solo casa comparando sin espacios.
+                for tam in range(1, n + 1):
+                    for inicio in range(len(indices) - tam + 1):
+                        ventana = indices[inicio:inicio + tam]
+                        leidas = [normalizadas[i] for i in ventana]
+                        exacta = " ".join(buscadas) in " ".join(leidas)
+                        pegada = tam < n and len(junto) >= 5 and junto in "".join(leidas)
+                        parecida = tam == n and all(palabras_coinciden(l, b) for l, b in zip(leidas, buscadas))
+                        if exacta or pegada or parecida:
+                            caja = caja_union([palabras[i]["caja"] for i in ventana])
+                            encontradas.append((caja, "nombre de la lista"))
 
-    return encontradas
+    # Un mismo tramo puede casar con varias ventanas o varios nombres de la lista
+    return list(dict.fromkeys(encontradas))
 
 
 def redactar_imagen(imagen_path: Path, salida_path: Path, cajas: list, estilo: str, color: str, margen: int):
@@ -224,8 +281,9 @@ def redactar_imagen(imagen_path: Path, salida_path: Path, cajas: list, estilo: s
     img.save(salida_path)
 
 
-def procesar_un_fichero(entrada: Path, salida: Path, nombres: list, estilo: str, color: str, margen: int) -> dict:
-    palabras = obtener_palabras_ocr(entrada)
+def procesar_un_fichero(entrada: Path, salida: Path, nombres: list, estilo: str, color: str, margen: int,
+                        escala: int = None, idioma: str = "spa+eng") -> dict:
+    palabras = obtener_palabras_ocr(entrada, escala, idioma)
     cajas = encontrar_cajas_a_redactar(palabras, nombres)
     redactar_imagen(entrada, salida, cajas, estilo, color, margen)
     resumen = {}
@@ -245,6 +303,8 @@ def main() -> int:
     parser.add_argument("--color", default="#2b2b2b", help="Color de la caja sólida (por defecto un gris oscuro discreto)")
     parser.add_argument("--margen", type=int, default=3, help="Píxeles de margen alrededor de cada caja detectada (por defecto 3)")
     parser.add_argument("--tesseract-cmd", default=None, help="Ruta al ejecutable de tesseract, si no está en el PATH ni en su ubicación habitual")
+    parser.add_argument("--escala-ocr", type=int, default=None,
+                         help="Amplía la imagen N veces antes del OCR, para leer letra pequeña de pantallas (por defecto automático: x3 hasta 1400 px de ancho, x2 hasta 2500, x1 a partir de ahí)")
     parser.add_argument("--forzar", action="store_true", help="Permite que entrada y salida sean el mismo fichero/carpeta (no recomendado)")
     args = parser.parse_args()
 
@@ -276,6 +336,13 @@ def main() -> int:
         return 1
     import pytesseract
     pytesseract.pytesseract.tesseract_cmd = ruta_tesseract
+    try:
+        idioma = elegir_idioma_ocr(pytesseract.get_languages(config=""))
+    except Exception:
+        idioma = "spa+eng"
+    if "spa" not in idioma:
+        print("Aviso: Tesseract no tiene el idioma español instalado; leo en inglés, que", file=sys.stderr)
+        print("falla más con tildes y eñes. Instala spa.traineddata en la carpeta tessdata.", file=sys.stderr)
 
     nombres = leer_lista_nombres(args.nombres)
     if not nombres:
@@ -293,14 +360,16 @@ def main() -> int:
             return 1
         salida.mkdir(parents=True, exist_ok=True)
         for i, imagen in enumerate(imagenes, 1):
-            resumen = procesar_un_fichero(imagen, salida / imagen.name, nombres, args.estilo, args.color, args.margen)
+            resumen = procesar_un_fichero(imagen, salida / imagen.name, nombres, args.estilo, args.color, args.margen,
+                                          args.escala_ocr, idioma)
             for tipo, n in resumen.items():
                 resumen_total[tipo] = resumen_total.get(tipo, 0) + n
             if i % 10 == 0:
                 print(f"  ... {i}/{len(imagenes)}")
         print(f"{len(imagenes)} imágenes procesadas -> {salida}")
     else:
-        resumen_total = procesar_un_fichero(entrada, salida, nombres, args.estilo, args.color, args.margen)
+        resumen_total = procesar_un_fichero(entrada, salida, nombres, args.estilo, args.color, args.margen,
+                                            args.escala_ocr, idioma)
         print(f"Redactada: {salida}")
 
     if resumen_total:

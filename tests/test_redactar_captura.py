@@ -56,6 +56,60 @@ def test_encontrar_cajas_nombre_de_dos_palabras():
     assert caja == (25, 0, 25, 10)  # une las cajas de "Juan" y "Perez"
 
 
+def _linea(*textos):
+    """Palabras OCR de una misma línea, cada una con su caja de 10 px de ancho."""
+    return [{"texto": t, "linea": (1, 1, 1), "caja": (i * 15, 0, 10, 10)} for i, t in enumerate(textos)]
+
+
+def test_normalizar_quita_tildes_mayusculas_y_puntuacion():
+    assert m.normalizar("Martínez:") == "martinez"
+    assert m.normalizar("  JUAN  Pérez, ") == "juan perez"
+    assert m.normalizar("Íñigo") == "inigo"
+
+
+def test_palabras_coinciden_tolera_errores_del_ocr_en_palabras_largas():
+    assert m.palabras_coinciden("martine", "martinez")
+    assert m.palabras_coinciden("mortines", "martinez")
+    assert not m.palabras_coinciden("lawn", "juan")  # cortas: solo iguales
+    assert not m.palabras_coinciden("pedido", "martinez")
+
+
+def test_encontrar_cajas_nombre_sin_tilde_en_el_ocr():
+    encontradas = m.encontrar_cajas_a_redactar(_linea("Juan", "Martinez"), ["Juan Martínez"])
+    assert encontradas == [((0, 0, 25, 10), "nombre de la lista")]
+
+
+def test_encontrar_cajas_nombre_con_error_del_ocr():
+    encontradas = m.encontrar_cajas_a_redactar(_linea("2", "Juan", "Martine:"), ["Juan Martínez"])
+    assert encontradas == [((15, 0, 25, 10), "nombre de la lista")]
+
+
+def test_encontrar_cajas_nombre_pegado_en_una_palabra():
+    encontradas = m.encontrar_cajas_a_redactar(_linea("MANBLANCOPEREZ", "2"), ["Blanco Pérez"])
+    assert encontradas == [((0, 0, 10, 10), "nombre de la lista")]
+
+
+def test_encontrar_cajas_no_duplica_si_varios_nombres_casan_igual():
+    encontradas = m.encontrar_cajas_a_redactar(_linea("Novality"), ["Novality", "novality"])
+    assert len(encontradas) == 1
+
+
+def test_encontrar_cajas_no_tapa_palabras_que_no_se_parecen():
+    assert m.encontrar_cajas_a_redactar(_linea("Pedido", "de", "compra"), ["Juan Martínez"]) == []
+
+
+def test_elegir_idioma_ocr():
+    assert m.elegir_idioma_ocr(["eng", "osd", "spa"]) == "spa+eng"
+    assert m.elegir_idioma_ocr(["eng", "osd"]) == "eng"
+    assert m.elegir_idioma_ocr([]) == "eng"
+
+
+def test_escala_ocr_auto_amplia_las_capturas_pequenas():
+    assert m.escala_ocr_auto(1077) == 3
+    assert m.escala_ocr_auto(1906) == 2
+    assert m.escala_ocr_auto(3840) == 1
+
+
 def test_leer_lista_nombres_ignora_comentarios_y_vacios(tmp_path):
     ruta = tmp_path / "nombres.txt"
     ruta.write_text("Novality\n# comentario\n\nInnovatecnic\n", encoding="utf-8")

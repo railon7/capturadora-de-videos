@@ -56,6 +56,37 @@ def test_buscar_nombres_sin_coincidencia():
     assert m.buscar_nombres("texto sin ningun nombre de la lista", "prueba", ["Novality"]) == []
 
 
+def test_buscar_nombres_sin_tildes_en_el_ocr():
+    assert len(m.buscar_nombres("2 Juan Martinez 24/03/2025", "ocr", ["Juan Martínez"])) == 1
+
+
+def test_buscar_nombres_con_error_del_ocr():
+    assert len(m.buscar_nombres("2 Juan Martine: 24/03/2025", "ocr", ["Juan Martínez"])) == 1
+
+
+def test_buscar_nombres_pegado_en_una_palabra():
+    assert len(m.buscar_nombres("Cliente MANBLANCOPEREZ 2", "ocr", ["Blanco Pérez"])) == 1
+
+
+def test_buscar_nombres_un_aviso_por_nombre_aunque_salga_varias_veces():
+    texto = "Juan Martinez entra. Juan Martinez sale."
+    assert len(m.buscar_nombres(texto, "ocr", ["Juan Martínez"])) == 1
+
+
+def test_buscar_nombres_no_avisa_de_palabras_que_no_se_parecen():
+    assert m.buscar_nombres("Pedido de compra del martes", "ocr", ["Juan Martínez"]) == []
+
+
+def test_elegir_idioma_ocr():
+    assert m.elegir_idioma_ocr(["eng", "spa"]) == "spa+eng"
+    assert m.elegir_idioma_ocr(["eng"]) == "eng"
+
+
+def test_escala_ocr_auto():
+    assert m.escala_ocr_auto(1077) == 3
+    assert m.escala_ocr_auto(3840) == 1
+
+
 def test_leer_lista_nombres_ignora_comentarios_y_vacios(tmp_path):
     ruta = tmp_path / "nombres.txt"
     ruta.write_text("Novality\n# comentario\n\nInnovatecnic\n", encoding="utf-8")

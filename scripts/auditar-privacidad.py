@@ -35,9 +35,11 @@ Uso:
     python auditar-privacidad.py --textos "Analisis" --ocr "Capturas/Editadas" --nombres "nombres-a-tapar.txt"
 """
 import argparse
+import difflib
 import re
 import shutil
 import sys
+import unicodedata
 from pathlib import Path
 
 # Rutas donde el instalador oficial / winget dejan tesseract.exe en Windows
@@ -152,17 +154,71 @@ def buscar_en_texto(texto: str, origen: str) -> list[str]:
     return hallazgos
 
 
+# --- Comparación de nombres tolerante al OCR, la misma que redactar-captura.py
+# (duplicada a propósito: cada script es autocontenido). El OCR se come tildes
+# ("Martinez"), confunde letras ("Martine:", "Martines") y pega palabras
+# ("JUANBLANCOPEREZ").
+
+def normalizar(texto: str) -> str:
+    """Minúsculas, sin tildes y sin puntuación en los bordes de cada palabra."""
+    sin_tildes = "".join(
+        c for c in unicodedata.normalize("NFKD", texto) if not unicodedata.combining(c)
+    )
+    palabras = [p.strip(".,:;!?¡¿()[]{}\"'«»-_/|") for p in sin_tildes.lower().split()]
+    return " ".join(p for p in palabras if p)
+
+
+def palabras_coinciden(leida: str, buscada: str, parecido_minimo: float = 0.75) -> bool:
+    """Iguales o, con 5 letras o más, lo bastante parecidas (ya normalizadas)."""
+    if leida == buscada:
+        return True
+    if min(len(leida), len(buscada)) < 5:
+        return False
+    return difflib.SequenceMatcher(None, leida, buscada).ratio() >= parecido_minimo
+
+
+def elegir_idioma_ocr(disponibles) -> str:
+    """spa+eng si Tesseract tiene el español instalado; si no, lo que haya."""
+    disponibles = set(disponibles or [])
+    elegidos = [i for i in ("spa", "eng") if i in disponibles]
+    return "+".join(elegidos) if elegidos else "eng"
+
+
+def escala_ocr_auto(ancho: int) -> int:
+    """Tesseract no lee la letra pequeña de una captura de pantalla a tamaño real."""
+    if ancho < 1400:
+        return 3
+    if ancho < 2500:
+        return 2
+    return 1
+
+
 def buscar_nombres(texto: str, origen: str, nombres: list) -> list[str]:
-    """Coincidencia literal (sin distinguir mayúsculas) contra una lista de
-    nombres propios o de empresa. No hay forma fiable de detectar esto solo
+    """Busca una lista de nombres propios o de empresa en el texto, sin
+    distinguir mayúsculas, tildes ni puntuación y tolerando errores pequeños
+    del OCR en palabras largas. No hay forma fiable de detectar nombres solo
     con regex — depende de que la lista la rellene quien conoce los nombres
-    reales del vídeo o del proyecto."""
+    reales del vídeo o del proyecto. Un aviso por nombre y origen."""
     hallazgos = []
-    texto_bajo = texto.lower()
+    leidas = normalizar(texto).split()
+    texto_norm = " ".join(leidas)
+    texto_junto = "".join(leidas)
     for nombre in nombres:
-        nombre = nombre.strip()
-        if nombre and nombre.lower() in texto_bajo:
-            hallazgos.append(f"- **nombre de la lista** en `{origen}`: `{enmascarar(nombre)}`")
+        buscadas = normalizar(nombre).split()
+        if not buscadas:
+            continue
+        n = len(buscadas)
+        junto = "".join(buscadas)
+        encontrado = (
+            " ".join(buscadas) in texto_norm
+            or (n > 1 and len(junto) >= 5 and junto in texto_junto)
+            or any(
+                all(palabras_coinciden(l, b) for l, b in zip(leidas[i:i + n], buscadas))
+                for i in range(len(leidas) - n + 1)
+            )
+        )
+        if encontrado:
+            hallazgos.append(f"- **nombre de la lista** en `{origen}`: `{enmascarar(nombre.strip())}`")
     return hallazgos
 
 
@@ -206,13 +262,24 @@ def escanear_ocr(carpeta: Path, tesseract_cmd: str = None, nombres: list = None)
         print("o indica la ruta con --tesseract-cmd \"C:\\ruta\\a\\tesseract.exe\"", file=sys.stderr)
         return []
     pytesseract.pytesseract.tesseract_cmd = ruta_tesseract
+    try:
+        idioma = elegir_idioma_ocr(pytesseract.get_languages(config=""))
+    except Exception:
+        idioma = "spa+eng"
+    if "spa" not in idioma:
+        print("Aviso: Tesseract no tiene el idioma español instalado; leo en inglés, que", file=sys.stderr)
+        print("falla más con tildes y eñes. Instala spa.traineddata en la carpeta tessdata.", file=sys.stderr)
 
     hallazgos = []
     imagenes = list(carpeta.rglob("*.jpg")) + list(carpeta.rglob("*.jpeg")) + list(carpeta.rglob("*.png"))
     print(f"OCR sobre {len(imagenes)} imagenes (varios segundos cada una)...")
     for i, imagen in enumerate(imagenes, 1):
         try:
-            texto = pytesseract.image_to_string(Image.open(imagen), lang="spa+eng")
+            img = Image.open(imagen)
+            escala = escala_ocr_auto(img.width)
+            if escala > 1:  # la letra pequeña de una pantalla no se lee a tamaño real
+                img = img.resize((img.width * escala, img.height * escala), Image.LANCZOS)
+            texto = pytesseract.image_to_string(img, lang=idioma)
         except Exception as e:
             print(f"  aviso: no se pudo leer {imagen.name}: {e}", file=sys.stderr)
             continue
