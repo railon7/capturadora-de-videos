@@ -23,7 +23,8 @@ import sys
 from pathlib import Path
 
 RE_FILA_CATALOGO = re.compile(
-    r"^\|\s*(?P<fichero>[^|]+?)\s*\|\s*(?P<hora>[^|]*?)\s*\|\s*(?P<ocr>[^|]*?)\s*\|\s*(?P<ve>[^|]*?)\s*\|\s*$"
+    # Las columnas de texto admiten "\|": así escapa catalogar-capturas.py las barras que lee el OCR
+    r"^\|\s*(?P<fichero>[^|]+?)\s*\|\s*(?P<hora>[^|]*?)\s*\|\s*(?P<ocr>(?:\\\||[^|])*?)\s*\|\s*(?P<ve>(?:\\\||[^|])*?)\s*\|\s*$"
 )
 
 

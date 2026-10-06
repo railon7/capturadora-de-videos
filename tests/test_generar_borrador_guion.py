@@ -48,3 +48,15 @@ def test_leer_catalogo_parsea_tabla_markdown(tmp_path):
     ruta.write_text(contenido, encoding="utf-8")
     filas = m.leer_catalogo(ruta)
     assert filas == [(0, "t_000000.jpg", "pantalla de login"), (45, "t_000045.jpg", "")]
+
+
+def test_leer_catalogo_admite_barras_escapadas_en_el_ocr(tmp_path):
+    # catalogar-capturas.py escapa como \| las barras que el OCR lee en pantalla
+    contenido = (
+        "| Fichero | Hora | Texto detectado (OCR) | Qué se ve |\n"
+        "|---|---|---|---|\n"
+        "| t_000010.jpg | 00:00:10 | Clientes \\| Artículos | lista de facturas |\n"
+    )
+    ruta = tmp_path / "Catalogo de capturas.md"
+    ruta.write_text(contenido, encoding="utf-8")
+    assert m.leer_catalogo(ruta) == [(10, "t_000010.jpg", "lista de facturas")]

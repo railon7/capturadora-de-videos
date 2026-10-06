@@ -187,7 +187,9 @@ $dirRej = Join-Path $Trabajo "Capturas\Rejilla"
 Get-ChildItem -LiteralPath $dirRej -Filter *.jpg -ErrorAction SilentlyContinue | Remove-Item -Force
 
 $t0 = Get-Date
-$filtro = "fps=1/$Intervalo,scale='min($AnchoMax,iw)':-2"
+# round=up: con el redondeo por defecto (near) el fotograma k sale de (k-1)*Intervalo + Intervalo/2,
+# y el t_HHMMSS.jpg que le pone el renombrado de abajo iría medio intervalo por detrás del vídeo
+$filtro = "fps=1/$($Intervalo):round=up,scale='min($AnchoMax,iw)':-2"
 $argsExtraer = @('-hide_banner','-loglevel','warning','-stats')
 if ($SoloKeyframes) { $argsExtraer += @('-skip_frame','nokey') }
 if ($inicioSeg -gt 0) { $argsExtraer += @('-ss', $inicioSeg) }
