@@ -14,6 +14,24 @@ Desde la carpeta de este repo:
 
 Listo. La skill está en `.claude/skills/video-a-manual/` del proyecto, y los scripts en `_herramientas/capturadora-de-videos/`. Sin pasos adicionales.
 
+### 0b. ¿El vídeo está en YouTube? Descárgalo
+
+Crea un `enlaces.txt` con una línea por vídeo, con nombre o sin él:
+
+```
+Creación de una ficha de cliente = https://youtu.be/ciHgR9xX1PI?si=sqWS...
+https://youtu.be/VMM_P4AEcuA
+```
+
+```bash
+pip install yt-dlp
+python scripts/descargar-videos.py --lista enlaces.txt --carpeta "C:\Videos\FactuSol"
+```
+
+Sin nombre, el fichero se llama como el título del vídeo. El script quita las comillas tipográficas, los espacios sobrantes, el `?si=...` de los enlaces compartidos y los caracteres que Windows no admite (`:` y `|` pasan a guion; los emojis desaparecen). Si un vídeo falla, sigue con los demás y al final te dice cuáles. Si lo relanzas, se salta los que ya están. También vale con enlaces sueltos: `python scripts/descargar-videos.py "https://youtu.be/..." --carpeta ...`.
+
+Solo vídeos propios, del cliente o con permiso del autor.
+
 ### 1. Extrae fotogramas del vídeo
 
 ```powershell

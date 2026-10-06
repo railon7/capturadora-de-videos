@@ -19,6 +19,20 @@ Claude usará la skill `/video-a-manual` automáticamente.
 
 ---
 
+## "Los vídeos están en YouTube"
+
+```
+Tengo estos vídeos en YouTube (son nuestros / del cliente / tengo permiso):
+[Nombre = URL, uno por línea]
+
+Descárgalos en: [RUTA CARPETA]
+y luego pásalos por la capturadora: fotogramas, transcripción y una ficha de conocimiento.
+```
+
+Claude usará `scripts/descargar-videos.py` para bajarlos y seguirá con el flujo normal.
+
+---
+
 ## "Solo quiero fotogramas navegables"
 
 ```

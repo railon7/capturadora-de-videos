@@ -10,6 +10,7 @@ No asumas que el objetivo final es siempre un manual — a veces solo hacen
 falta las imágenes, o solo el guion de lo que se dijo.
 
 ```
+0. DESCARGA   scripts/descargar-videos.py   (solo si el vídeo está en una web)
 1. CAPTURAS   scripts/extraer-capturas.ps1   (+ recortar-pantalla.py si es una videollamada, + detectar-redundantes.py, opcional)
 1bis. CATÁLOGO   scripts/catalogar-capturas.py       (obligatorio, siempre)
 2. GUION      metodologia/de-video-a-guion-y-patrones.md  §1-3   (+ generar-borrador-guion.py, opcional)
@@ -32,6 +33,22 @@ Pregunta si no está claro:
 **El paso 1bis no se salta nunca, sea cual sea el destino final.** Sin un
 catálogo del contenido, ni la persona ni ningún LLM que retome el trabajo
 después sabe qué hay en las capturas sin abrirlas una por una.
+
+## 0 · Si el vídeo está en una web (YouTube...)
+
+Los scripts trabajan con un fichero local. Si te pasan enlaces, descárgalos
+primero. Si vienen como "Nombre = URL", guárdalos tal cual en un
+`enlaces.txt`, una línea por vídeo (sin nombre, basta la URL), y lanza:
+
+```bash
+python scripts/descargar-videos.py --lista enlaces.txt --carpeta "<carpeta de los vídeos>"
+```
+
+No construyas a mano el comando de yt-dlp: el script ya limpia las comillas
+tipográficas, el `?si=...` de los enlaces y los caracteres que Windows no
+admite en un nombre. Si falla alguno, dilo con su nombre. **Pregunta antes si
+los vídeos son propios, del cliente o con permiso** cuando no esté claro: las
+condiciones de YouTube no permiten bajar contenido ajeno sin autorización.
 
 ## 1 · Extraer capturas
 
@@ -193,4 +210,4 @@ es la siguiente acción concreta.
 
 ---
 
-*Skill v1.5 · repositorio Capturadora de Vídeos*
+*Skill v1.6 · repositorio Capturadora de Vídeos*

@@ -4,6 +4,10 @@
 *.mov
 *.avi
 *.mkv
+*.webm
+# Temporales de yt-dlp si una descarga se corta
+*.part
+*.ytdl
 
 Capturas/
 Capturas-*/

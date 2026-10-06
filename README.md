@@ -13,7 +13,7 @@ imágenes, texto o documentación.
 ## El pipeline
 
 ```
-Vídeo
+Vídeo (fichero local, o enlace de YouTube → 0. DESCARGA — scripts/descargar-videos.py)
   │
   ├─► 1. CAPTURAS — scripts/extraer-capturas.ps1
   │     Un fotograma cada N segundos + hojas de contacto para
@@ -80,6 +80,10 @@ no un sustituto de la revisión humana antes de entregar.
 ## Quickstart
 
 ```powershell
+# 0. (Si el vídeo está en YouTube) Descargarlo. enlaces.txt: una línea por vídeo,
+#    "Nombre = URL" o solo "URL". Corrige comillas, ?si=... y caracteres raros.
+python scripts/descargar-videos.py --lista enlaces.txt --carpeta "C:\ruta\de\los\videos"
+
 # 1. Fotogramas cada 20s + hojas de contacto de un vídeo cualquiera.
 #    Añade -DeteccionEscena si el vídeo tiene transiciones más rápidas
 #    que el intervalo, o -SaltarInicioPct/-SaltarFinalPct si hay intro/outro.
@@ -131,7 +135,7 @@ Después, sigue `metodologia/de-video-a-guion-y-patrones.md` para el guion y
 
 | Carpeta | Contenido |
 |---|---|
-| `scripts/` | Extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, recorte de la pantalla compartida en videollamadas, detección de redundantes, catálogo de contenido, borrador del guion, anotación, redacción de datos personales, transcripción, auditoría de privacidad, exportación del manual y consolidación de patrones |
+| `scripts/` | Descarga de vídeos de YouTube, extracción de fotogramas/escenas, hojas de contacto, capturas puntuales, recorte de la pantalla compartida en videollamadas, detección de redundantes, catálogo de contenido, borrador del guion, anotación, redacción de datos personales, transcripción, auditoría de privacidad, exportación del manual y consolidación de patrones |
 | `plantillas/` | Plantillas del mapa de vídeo, del protocolo/manual y de los patrones reutilizables |
 | `metodologia/` | Los dos procedimientos: vídeo → guion y patrones · capturas → manual |
 | `conocimiento/` | `patrones-acumulados.md` — el conocimiento reutilizable de todos los vídeos procesados con este repo, no de un proyecto en concreto |
@@ -200,4 +204,8 @@ de cliente y el vídeo original **no vienen a este repositorio** (ver
   OCR (la letra de una pantalla es pequeña) y buscan los nombres sin tildes y
   tolerando errores de lectura; aun así, un nombre que el OCR lee muy mal
   ("Precio Genes" por "Pedro Gómez") se escapa: revisa siempre a ojo.
+- **yt-dlp** (`pip install yt-dlp`) solo para `descargar-videos.py`. Usa
+  también ffmpeg, para juntar vídeo y audio en un .mp4. Descarga solo vídeos
+  propios, del cliente o con permiso del autor: las condiciones de YouTube no
+  permiten bajar contenido ajeno sin autorización.
 - **pytest** (`pip install pytest`) solo para correr `tests/`.
