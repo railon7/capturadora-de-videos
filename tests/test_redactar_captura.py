@@ -94,6 +94,13 @@ def test_encontrar_cajas_no_duplica_si_varios_nombres_casan_igual():
     assert len(encontradas) == 1
 
 
+def test_no_tapa_palabras_corrientes_parecidas_a_un_nombre_corto():
+    # "Marca" y "Material" se parecen a "María" tanto como un error del OCR: en nombres
+    # cortos solo vale la coincidencia exacta (sin tildes)
+    assert m.encontrar_cajas_a_redactar(_linea("Marca", "Material", "marcas"), ["María"]) == []
+    assert len(m.encontrar_cajas_a_redactar(_linea("Maria", "López"), ["María"])) == 1
+
+
 def test_encontrar_cajas_no_tapa_palabras_que_no_se_parecen():
     assert m.encontrar_cajas_a_redactar(_linea("Pedido", "de", "compra"), ["Juan Martínez"]) == []
 

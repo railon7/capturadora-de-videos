@@ -169,10 +169,13 @@ def normalizar(texto: str) -> str:
 
 
 def palabras_coinciden(leida: str, buscada: str, parecido_minimo: float = 0.75) -> bool:
-    """Iguales o, con 5 letras o más, lo bastante parecidas (ya normalizadas)."""
+    """Iguales o, si el nombre tiene 7 letras o más, lo bastante parecidas (ya normalizadas)."""
     if leida == buscada:
         return True
-    if min(len(leida), len(buscada)) < 5:
+    # Solo en palabras largas: en las cortas, un error del OCR ("gomes") se parece tanto
+    # al nombre como una palabra corriente ("marca" a "maria", 0.8), y tapar cabeceras
+    # como «Marca» o «Material» estropea la captura.
+    if len(buscada) < 7 or abs(len(leida) - len(buscada)) > 2:
         return False
     return difflib.SequenceMatcher(None, leida, buscada).ratio() >= parecido_minimo
 

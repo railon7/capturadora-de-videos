@@ -95,3 +95,7 @@ def test_leer_lista_nombres_ignora_comentarios_y_vacios(tmp_path):
 
 def test_leer_lista_nombres_sin_ruta():
     assert m.leer_lista_nombres(None) == []
+
+
+def test_buscar_nombres_no_avisa_de_palabras_corrientes_parecidas_a_un_nombre_corto():
+    assert m.buscar_nombres("Marca Material marcas", "ocr", ["María"]) == []
