@@ -20,13 +20,19 @@ HTML es el entregable fiable, el PDF es un extra.
 """
 import argparse
 import base64
+import glob
 import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import unquote
 
-RE_IMAGEN_MD = re.compile(r"(!\[[^\]]*\]\()([^)\s]+)(\))")
+# ![alt](ruta) con la ruta tal cual (puede llevar espacios, como las deja
+# Obsidian), entre <...> o con %20, y un título opcional: ![alt](ruta "título")
+RE_IMAGEN_MD = re.compile(r'(!\[[^\]]*\]\()\s*(<[^>\n]+>|[^)\n]+?)(\s+"[^"\n]*")?\s*(\))')
+# Incrustación de Obsidian: ![[imagen.png]] o ![[imagen.png|300]]
+RE_IMAGEN_OBSIDIAN = re.compile(r"!\[\[([^\]|\n]+)(?:\|[^\]\n]*)?\]\]")
 
 TIPOS_MIME = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
@@ -56,20 +62,37 @@ PLANTILLA_HTML = """<!DOCTYPE html>
 """
 
 
+def a_data_uri(ruta_img: Path) -> str:
+    mime = TIPOS_MIME.get(ruta_img.suffix.lower(), "application/octet-stream")
+    return f"data:{mime};base64,{base64.b64encode(ruta_img.read_bytes()).decode('ascii')}"
+
+
 def incrustar_imagenes(md_texto: str, base_dir: Path) -> str:
     def reemplazar(m):
-        prefijo, ruta_rel, sufijo = m.groups()
+        prefijo, ruta_rel, titulo, cierre = m.groups()
+        if ruta_rel.startswith("<") and ruta_rel.endswith(">"):
+            ruta_rel = ruta_rel[1:-1]
         if ruta_rel.startswith(("http://", "https://", "data:")):
             return m.group(0)
-        ruta_img = (base_dir / ruta_rel).resolve()
+        ruta_img = (base_dir / unquote(ruta_rel)).resolve()
         if not ruta_img.exists():
             print(f"Aviso: no encuentro la imagen {ruta_img}, se deja el enlace tal cual", file=sys.stderr)
             return m.group(0)
-        mime = TIPOS_MIME.get(ruta_img.suffix.lower(), "application/octet-stream")
-        datos = base64.b64encode(ruta_img.read_bytes()).decode("ascii")
-        return f"{prefijo}data:{mime};base64,{datos}{sufijo}"
+        return f"{prefijo}{a_data_uri(ruta_img)}{titulo or ''}{cierre}"
 
-    return RE_IMAGEN_MD.sub(reemplazar, md_texto)
+    def reemplazar_obsidian(m):
+        nombre = m.group(1).strip()
+        ruta_img = (base_dir / nombre).resolve()
+        if not ruta_img.exists():
+            # Obsidian también resuelve por nombre de fichero en cualquier subcarpeta
+            ruta_img = next(base_dir.rglob(glob.escape(Path(nombre).name)), None)
+        if ruta_img is None or not ruta_img.exists():
+            print(f"Aviso: no encuentro la imagen {nombre}, se deja la incrustación tal cual", file=sys.stderr)
+            return m.group(0)
+        return f"![{Path(nombre).stem}]({a_data_uri(ruta_img)})"
+
+    md_texto = RE_IMAGEN_MD.sub(reemplazar, md_texto)
+    return RE_IMAGEN_OBSIDIAN.sub(reemplazar_obsidian, md_texto)
 
 
 def main() -> int:
